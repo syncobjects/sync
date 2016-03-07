@@ -1,0 +1,104 @@
+<project name="sync-as" basedir="." default="dist">
+	<property file="build.properties"/>
+	
+	<path id="project.classpath">
+		<pathelement location="${build.api}"/>
+		<pathelement location="${build.core}"/>
+		<pathelement location="${build.netty}"/>
+		<pathelement location="${build.startup}"/>
+		<pathelement location="lib"/>
+		<fileset dir="${lib}">
+			<include name="**/*.jar"/>
+		</fileset>
+	</path>
+	
+	<target name="clean">
+		<delete file="${lib}/${jar.api}"/>
+		<delete file="${lib}/${jar.core}"/>	
+		<delete file="${lib}/${jar.netty}"/>
+		<delete file="${lib}/${jar.startup}"/>
+		<delete dir="${build}"/>
+		<mkdir dir="${build.api}"/>
+		<mkdir dir="${build.core}"/>
+		<mkdir dir="${build.netty}"/>
+		<mkdir dir="${build.startup}"/>
+	</target>
+	
+	<target name="prepare" depends="clean">
+		<tstamp/>
+		<echo message="building release ${version}"/>
+	</target>
+	
+	<target name="build" depends="prepare">
+		<echo message="Compiling Java source code"/>
+		<javac srcdir="${src.api}" destdir="${build.api}" includeantruntime="false" debug="${compile.debug}" encoding="${compile.encoding}"/>
+		<javac srcdir="${src.asm}" destdir="${build.core}" includeantruntime="false" debug="${compile.debug}" encoding="${compile.encoding}"/>
+		<javac srcdir="${src.core}" destdir="${build.core}" includeantruntime="false" debug="${compile.debug}" encoding="${compile.encoding}">
+			<classpath refid="project.classpath"/>
+		</javac>
+		<copy todir="${build.core}" verbose="true">
+			<fileset dir="${src.core}">
+				<include name="**/*.xml"/>
+			</fileset>
+		</copy>
+		<javac srcdir="${src.netty}" destdir="${build.netty}" includeantruntime="false" debug="${compile.debug}" encoding="${compile.encoding}">
+			<classpath refid="project.classpath"/>
+		</javac>
+		<copy todir="${build.netty}" verbose="true">
+			<fileset dir="${src.netty}">
+				<include name="**/*.xml"/>
+			</fileset>
+		</copy>
+		<javac srcdir="${src.startup}" destdir="${build.startup}" includeantruntime="false" debug="${compile.debug}" encoding="${compile.encoding}">
+			<classpath refid="project.classpath"/>
+		</javac>
+	</target>
+	
+	<target name="dist" depends="build">
+		<jar jarfile="${lib}/${jar.api}" basedir="${build.api}">
+			<manifest>
+				<attribute name="Built-By" value="${user.name}"/>
+				<attribute name="Created-By" value="SyncObjects Ltda."/>
+				<attribute name="Implementation-Title" value="SyncObjects Application Server API"/>
+				<attribute name="Implementation-Version" value="${version}"/>
+				<attribute name="Implementation-Vendor" value="SyncObjects Ltda."/>
+			</manifest>
+		</jar>
+		<jar destfile="${lib}/${jar.core}">
+			<fileset dir="${build.core}"/>
+		</jar>
+		<jar destfile="${lib}/${jar.netty}">
+			<fileset dir="${build.netty}"/>
+		</jar>
+		<jar destfile="${lib}/${jar.startup}">
+			<fileset dir="${build.startup}"/>
+			<manifest>
+				<attribute name="Implementation-Vendor" value="SyncObjects"/>
+				<attribute name="Implementation-Title" value="Sync Application Server"/>
+				<attribute name="Implementation-Version" value="${version}"/>
+				<attribute name="Main-Class" value="com.syncobjects.as.startup.Bootstrap"/>
+			</manifest>
+		</jar>
+		<tar destfile="${basedir}/sync-as-${version}.tar.gz" compression="gzip" longfile="gnu">
+			<tarfileset dir="${basedir}">
+				<include name="applications/hello/**"/>
+				<include name="bin/startup"/>
+				<include name="bin/shutdown"/>
+				<include name="docs/LICENSE"/>
+				<include name="lib/${jar.api}"/>
+				<include name="lib/${jar.core}"/>
+				<include name="lib/${jar.netty}"/>
+				<include name="lib/${jar.startup}"/>
+				<include name="lib/freemarker-2.3.23.jar"/>
+				<include name="lib/hamcrest-core-1.3.jar"/>
+				<include name="lib/javassist.jar"/>
+				<include name="lib/junit-4.11.jar"/>
+				<include name="lib/logback-classic-1.1.3.jar"/>
+				<include name="lib/logback-core-1.1.3.jar"/>
+				<include name="lib/netty-all-4.1.0.CR1.jar"/>
+				<include name="lib/slf4j-api-1.7.7.jar"/>
+				<include name="server.properties"/>
+			</tarfileset>
+		</tar>
+	</target>
+</project>
