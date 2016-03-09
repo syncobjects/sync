@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -354,6 +355,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		if(this.request.headers() != null && this.request.headers().getAsString("X-Sync-Client") != null) {
 			requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, 
 					this.request.headers().getAsString("X-Sync-Client"));
+		}
+		else {			
+			InetSocketAddress isa = (InetSocketAddress)ctx.channel().remoteAddress();
+			requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, isa.getHostString()+":"+isa.getPort());
 		}
 		requestWrapper.getRequestContext().put(RequestContext.METHOD, this.request.method().asciiName());
 
