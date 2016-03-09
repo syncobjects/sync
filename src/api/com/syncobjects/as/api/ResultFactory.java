@@ -19,58 +19,59 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ResultFactory {
+	private static final Map<String,FileResult> file = new ConcurrentHashMap<String,FileResult>();
 	private static final Map<String,RedirectResult> redirect = new ConcurrentHashMap<String,RedirectResult>();
 	private static final Map<String,RenderResult> render = new ConcurrentHashMap<String,RenderResult>();
 	
-	public static Result redirect(String s) {
-		return redirect(s, null, true);
+	public static Result file(String path, FileResult.Type type) {
+		return file(path, type, true);
 	}
 	
-	public static Result redirect(String s, boolean cache) {
-		return redirect(s, null, cache);
-	}
-	
-	public static Result redirect(String s, RedirectResult result) {
-		return redirect(s, result, true);
-	}
-	
-	public static Result redirect(String s, RedirectResult result, boolean cache) {
-		RedirectResult r = result;
-		if(cache && r == null)
-			r = redirect.get(s);
-		if(r == null)
-			r = new RedirectResult(s);
+	public static Result file(String path, FileResult.Type type, boolean cache) {
+		FileResult r = null;
 		if(cache)
-			redirect.put(s, r);
+			r = file.get(path.toLowerCase());
+		if(r == null)
+			r = new FileResult(path);
+		if(cache)
+			file.put(path.toLowerCase(), r);
 		return r;
 	}
 	
-	public static Result render(String s) {
-		return render(s, null, true);
+	public static Result redirect(String url) {
+		return redirect(url, true);
 	}
 	
-	public static Result render(String s, boolean reuse) {
-		return render(s, null, reuse);
+	public static Result redirect(String url, boolean cache) {
+		RedirectResult r = null;
+		if(cache && r == null)
+			r = redirect.get(url);
+		if(r == null)
+			r = new RedirectResult(url);
+		if(cache)
+			redirect.put(url, r);
+		return r;
 	}
 	
-	public static Result render(String s, RenderResult result) {
-		return render(s, result, true);
+	public static Result render(String template) {
+		return render(template, true);
 	}
 	
-	public static Result render(String s, RenderResult result, boolean cache) {
-		RenderResult r = result;
-		if(cache && r == null) {
-			r = render.get(s);
+	public static Result render(String template, boolean cache) {
+		RenderResult r = null;
+		if(cache) {
+			r = render.get(template);
 		}
 		if(r == null) {
-			r = new RenderResult(s);
+			r = new RenderResult(template);
 		}
 		if(cache)
-			render.put(s, r);
+			render.put(template, r);
 		return r;
 	}
 	
 	public static void clear() {
+		ResultFactory.file.clear();
 		ResultFactory.redirect.clear();
 		ResultFactory.render.clear();
 	}

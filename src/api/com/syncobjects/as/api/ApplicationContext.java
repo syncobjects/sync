@@ -34,5 +34,7 @@ public class ApplicationContext extends Context {
 	private static final long serialVersionUID = 78591761595270365L;
 	public static final String HOME = "com.syncobjects.as.api.ApplicationContext.HOME";
 	public static final String LOCALE = "com.syncobjects.as.api.ApplicationContext.LOCALE";
+	public static final String PRIVATE_FOLDER = "com.syncobjects.as.api.ApplicationContext.PRIVATE_FOLDER";
 	public static final String PROPERTIES = "com.syncobjects.as.api.ApplicationContext.PROPERTIES";
+	public static final String PUBLIC_FOLDER = "com.syncobjects.as.api.ApplicationContext.PUBLIC_FOLDER";
 }

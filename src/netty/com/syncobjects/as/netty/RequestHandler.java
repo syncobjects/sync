@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.syncobjects.as.api.ApplicationContext;
+import com.syncobjects.as.api.FileResult;
 import com.syncobjects.as.api.RequestContext;
 import com.syncobjects.as.api.Result;
 import com.syncobjects.as.core.Application;
@@ -99,9 +100,10 @@ import io.netty.handler.codec.http.multipart.InterfaceHttpData.HttpDataType;
 import io.netty.util.CharsetUtil;
 
 /**
+ * Main request handler class. Please note that this class handles partial requests, so handling both small requests 
+ * and file upload requests.
  * 
  * @author dfroz
- *
  */
 public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -330,98 +332,11 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		}
 
 		File file = new File(application.getConfig().getPublicDirectory(), path);
-		if(!file.exists()) {
-			// file not found try request dynamically
-			if(log.isDebugEnabled())
-				log.debug("{}: file not found: {}", application, file);
-			return false;
-		}
-		if(file.isHidden()) {
-			sendFileNotFound(ctx);
-			return true;
-		}
-		if(file.isDirectory()) {
-			// once is a directory a dynamic handler can take it ...
-			// even if a index.html, the @Action Controller.main() shall handle it
-			return false;
-		}
-		//
-		// Check if the file resides under the basic directory. 
-		// Many ../../../.. can compromise system's security.
-		//
-		if(!file.getAbsolutePath().startsWith(application.getConfig().getPublicDirectory().getAbsolutePath())) {
-			sendError(ctx, HttpResponseStatus.FORBIDDEN);
-			return true;
-		}
-		if(!file.isFile()) {
-			sendError(ctx, HttpResponseStatus.FORBIDDEN);
-			return true;
-		}
 		
-
-		RandomAccessFile raf;
-		try {
-			raf = new RandomAccessFile(file, "r");
-		} catch (FileNotFoundException ignore) {
-			sendError(ctx, NOT_FOUND);
-			return true;
-		}
-		long fileLength = raf.length();
-
-		if(log.isTraceEnabled())
-			log.trace("{}: returning file: {}", application, file);
-
-		HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
-		HttpUtil.setContentLength(response, fileLength);
-		response.headers().set(CONTENT_TYPE, MimeUtils.getContentType(file));
-		setDateAndCacheHeaders(response, file);
-		if (HttpUtil.isKeepAlive(request)) {
-			response.headers().set(CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-		}
-
-		// Write the initial line and the header.
-		ctx.write(response);
-
-		// Write the content.
-		ChannelFuture sendFileFuture;
-		ChannelFuture lastContentFuture;
-
-		sendFileFuture = ctx.write(new DefaultFileRegion(raf.getChannel(), 0, fileLength), ctx.newProgressivePromise());
-		lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-
-		sendFileFuture.addListener(new ChannelProgressiveFutureListener() {
-			@Override
-			public void operationProgressed(ChannelProgressiveFuture future, long progress, long total) {
-				if (total < 0) { // total unknown
-					if(log.isTraceEnabled())
-						log.trace("{}: "+future.channel() + " transfer progress: " + progress, application);
-				} else {
-					if(log.isTraceEnabled())
-						log.trace("{}: "+future.channel() + " Transfer progress: " + progress + " / " + total, application);
-				}
-			}
-
-			@Override
-			public void operationComplete(ChannelProgressiveFuture future) {
-				if(log.isTraceEnabled())
-					log.trace("{}: "+future.channel() + " transfer complete.", application);
-				if(raf != null) {
-					try {  raf.close(); } catch(Exception ignore) {
-						if(log.isTraceEnabled())
-							log.trace("exception caught: {}", ignore);
-					}
-				}
-			}
-		});
-
-		// Decide whether to close the connection or not.
-		//if (!HttpUtil.isKeepAlive(request)) {
-		    // Close the connection when the whole content is written out.
-			// ctx.flush();
-			lastContentFuture.addListener(ChannelFutureListener.CLOSE);
-		//}
-
-		return true;
+		this.response.setApplication(application);
+		this.response.setFile(file);
+		
+		return sendFile(ctx, response);
 	}
 
 	private boolean handleRequestDynamically(ChannelHandlerContext ctx) {
@@ -486,22 +401,24 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				//
 				// default action is to return null; if not null, direct to response and end the req/resp cycle
 				//
-				Result resultInterceptor = interceptors[i].before(requestWrapper, response);
-				if(resultInterceptor != null) {
+				Result interceptorResult = interceptors[i].before(requestWrapper, response);
+				if(interceptorResult != null) {
 					//
 					// find the responder which will handle the result. populate data using the response object.
 					//
-					Responder responder = responderFactory.find(resultInterceptor);
+					Responder responder = responderFactory.find(interceptorResult);
 					if(responder == null) {
-						log.error("no responder encountered to handle result: "+resultInterceptor);
+						log.error("no responder encountered to handle result: "+interceptorResult);
 						sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
 						return true;
 					}
-					responder.respond(response, interceptors[i], resultInterceptor);
+					responder.respond(response, interceptors[i], interceptorResult);
 					if(log.isTraceEnabled())
-						log.trace(interceptors[i]+".before() returned result: "+resultInterceptor);
-					sendResponse(ctx, response);
-					return true;
+						log.trace(interceptors[i]+".before() returned result: "+interceptorResult);
+					if(interceptorResult instanceof FileResult)
+						return sendFile(ctx, response);
+					else
+						return sendResponse(ctx, response);
 				}
 			}
 
@@ -522,25 +439,24 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				//
 				// default action is to return null; if not null, direct to response and end the req/resp cycle
 				//
-				Result resultInterceptor = interceptors[i].after(requestWrapper, response);
-				if(resultInterceptor != null) {
+				Result interceptorResult = interceptors[i].after(requestWrapper, response);
+				if(interceptorResult != null) {
 					//
 					// find the responder which will handle the result. populate data using the response object.
 					//
-					Responder responder = responderFactory.find(resultInterceptor);
+					Responder responder = responderFactory.find(interceptorResult);
 					if(responder == null) {
-						log.error("no responder encountered to handle result: "+resultInterceptor);
+						log.error("no responder encountered to handle result: "+interceptorResult);
 						sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
 						return true;
 					}
-					if(log.isTraceEnabled()) {
-						log.trace(interceptors[i]+".after() returned result: "+resultInterceptor);
-					}
-					responder.respond(response, interceptors[i], resultInterceptor);
-					sendResponse(ctx, response);
 					if(log.isTraceEnabled())
-						log.trace(responder+" delivered response");
-					return true;
+						log.trace(interceptors[i]+".after() returned result: "+interceptorResult);
+					responder.respond(response, interceptors[i], interceptorResult);
+					if(interceptorResult instanceof FileResult)
+						return sendFile(ctx, response);
+					else
+						return sendResponse(ctx, response);
 				}
 			}
 
@@ -553,11 +469,17 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
 				return true;
 			}
+			
 			responder.respond(response, controller, result);
-			sendResponse(ctx, response);
-			if(log.isTraceEnabled()) {
-				log.trace("{} delivered response: {}", responder, result);
-			}
+			
+			if(log.isTraceEnabled())
+				log.trace("{}: {} delivered response: {}", application, responder, result);
+			
+			if(result instanceof FileResult)
+				return sendFile(ctx, response);
+			else
+				return sendResponse(ctx, response);
+			
 		}
 		catch(Exception e) {
 			sendException(ctx, e);
@@ -581,7 +503,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				LAST_MODIFIED, dateFormatter.format(new Date(fileToCache.lastModified())));
 	}
 
-	private void sendResponse(ChannelHandlerContext ctx, Response response) throws Exception {
+	private boolean sendResponse(ChannelHandlerContext ctx, Response response) throws Exception {
 		HttpResponseStatus responseStatus = null;
 		switch(response.getCode()) {
 		case INTERNAL_ERROR:
@@ -609,18 +531,153 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		httpResponse.headers().set(HttpHeaderNames.SERVER, "Sync-AS");
 		httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8");
-
+		httpResponse.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+		httpResponse.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, buf.readableBytes());
+		
+		//
+		// if response has declared specific Headers, then this may or may not override the default headers
+		// declared above.
+		//
 		if(response.getHeaders() != null) {
+			if(log.isTraceEnabled())
+				log.trace("custom response headers identified... passing to the response");
 			for(String header: response.getHeaders().keySet()) {
+				if(log.isTraceEnabled())
+					log.trace("setting response header: {}: {}", header, response.getHeaders().get(header));
 				httpResponse.headers().set(header, response.getHeaders().get(header));
 			}
 		}
 
-		httpResponse.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, buf.readableBytes());
-
 		// Write the response.
 		ctx.channel().writeAndFlush(httpResponse).addListener(ChannelFutureListener.CLOSE);
 		reset();
+		
+		return true;
+	}
+	
+	private boolean sendFile(ChannelHandlerContext ctx, Response response) throws Exception {
+		Application application = response.getApplication();
+		if(application == null) {
+			log.error("no response.application has been set");
+			sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			return true;
+		}
+		
+		File file = response.getFile();
+		if(file == null) {
+			log.error("no response.file has been set");
+			sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			return true;
+		}
+		
+		if(!file.exists()) {
+			// file not found try request dynamically
+			if(log.isDebugEnabled())
+				log.debug("{}: file not found: {}", application, file);
+			return false;
+		}
+		if(file.isHidden()) {
+			if(log.isDebugEnabled()) {
+				log.debug("{}: file {} is hidden; returning File Not Found", 
+						application, file.getAbsolutePath());
+			}
+			sendFileNotFound(ctx);
+			return true;
+		}
+		if(file.isDirectory()) {
+			// once is a directory a dynamic handler can take it ...
+			// even if a index.html, the @Action Controller.main() shall handle it
+			return false;
+		}
+		//
+		// Check if the file resides under the PUBLIC or PRIVATE folders. 
+		// More important point for this verification is with PUBLIC requests where multiples ../../../..
+		// may lead to security breach - exposing unwanted system files.
+		//
+		String path = file.getAbsolutePath();
+		if(!path.startsWith(application.getConfig().getPublicDirectory().getAbsolutePath())
+				&& !path.startsWith(application.getConfig().getPrivateDirectory().getAbsolutePath())) {
+			log.error("{}: file {} returned, is not located under Public or Private folders", 
+					application, file.getAbsolutePath());
+			sendError(ctx, HttpResponseStatus.FORBIDDEN);
+			return true;
+		}
+		if(!file.isFile()) {
+			sendError(ctx, HttpResponseStatus.FORBIDDEN);
+			return true;
+		}
+
+		RandomAccessFile raf;
+		try {
+			raf = new RandomAccessFile(file, "r");
+		} catch (FileNotFoundException ignore) {
+			sendError(ctx, NOT_FOUND);
+			return true;
+		}
+		long fileLength = raf.length();
+
+		if(log.isTraceEnabled())
+			log.trace("{}: returning file: {}", application, file);
+
+		HttpResponse httpResponse = new DefaultHttpResponse(HTTP_1_1, OK);
+		HttpUtil.setContentLength(httpResponse, fileLength);
+		httpResponse.headers().set(CONTENT_TYPE, MimeUtils.getContentType(file));
+		setDateAndCacheHeaders(httpResponse, file);
+		httpResponse.headers().set(CONNECTION, HttpHeaderValues.CLOSE);
+		//
+		// if response has declared specific Headers, then this may or may not override the default headers
+		// declared above.
+		//
+		if(response.getHeaders() != null) {
+			if(log.isTraceEnabled())
+				log.trace("custom response headers identified... passing to the response");
+			for(String header: response.getHeaders().keySet()) {
+				if(log.isTraceEnabled())
+					log.trace("setting response header: {}: {}", header, response.getHeaders().get(header));
+				httpResponse.headers().set(header, response.getHeaders().get(header));
+			}
+		}
+
+		// Write the initial line and the header.
+		ctx.write(httpResponse);
+
+		// Write the content.
+		ChannelFuture sendFileFuture;
+		ChannelFuture lastContentFuture;
+
+		sendFileFuture = ctx.write(new DefaultFileRegion(raf.getChannel(), 0, fileLength), ctx.newProgressivePromise());
+		lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+
+		sendFileFuture.addListener(new ChannelProgressiveFutureListener() {
+			@Override
+			public void operationProgressed(ChannelProgressiveFuture future, long progress, long total) {
+				if (total < 0) { // total unknown
+					if(log.isTraceEnabled())
+						log.trace("{}: "+future.channel() + " transfer progress: " + progress, application);
+				} else {
+					if(log.isTraceEnabled())
+						log.trace("{}: "+future.channel() + " Transfer progress: " + progress + " / " + total, application);
+				}
+			}
+
+			@Override
+			public void operationComplete(ChannelProgressiveFuture future) {
+				if(log.isTraceEnabled())
+					log.trace("{}: "+future.channel() + " transfer complete.", application);
+				if(raf != null) {
+					try {  raf.close(); } catch(Exception ignore) {
+						if(log.isTraceEnabled())
+							log.trace("exception caught: {}", ignore);
+					}
+				}
+			}
+		});
+
+	    // Close the connection when the whole content is written out.
+		ctx.flush();
+		lastContentFuture.addListener(ChannelFutureListener.CLOSE);
+			
+		return true;
 	}
 
 	private void sendFileNotFound(ChannelHandlerContext ctx) {
@@ -649,7 +706,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		sb.append(".code { margin: 10px 0px 10px 0px; padding: 10px; border: 1px solid #c0c0c0; background: #f0f000 }\n");
 		sb.append("</style>");
 		sb.append("<body>");
-
 
 		if(e instanceof ControllerBeanException) {
 			ControllerBeanException cbe = (ControllerBeanException)e;

@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class Result {
+	public static final String CONTENT_DISPOSITION = "Content-Disposition";
 	public static final String CONTENT_LENGTH_HEADER = "Content-Length";
 	public static final String CONTENT_TYPE_HEADER = "Content-Type";
 	public static final String SET_COOKIE_HEADER = "Set-Cookie";

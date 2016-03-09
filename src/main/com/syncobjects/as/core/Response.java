@@ -16,6 +16,7 @@
 package com.syncobjects.as.core;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +34,9 @@ public class Response implements Recyclable {
 		TEMPORARY_REDIRECT,
 		NOT_FOUND
 	}
+	private Application application;
 	private Code code;
+	private File file;
 	private final Map<String, String> headers = new ConcurrentHashMap<String, String>();
 	private final OutputStream outputStream = new ByteArrayOutputStream(8 * 1024);
 	private Session session;
@@ -42,12 +45,28 @@ public class Response implements Recyclable {
 		code = Code.OK;
 	}
 
+	public Application getApplication() {
+		return application;
+	}
+
+	public void setApplication(Application application) {
+		this.application = application;
+	}
+
 	public Code getCode() {
 		return code;
 	}
 
 	public void setCode(Code code) {
 		this.code = code;
+	}
+
+	public File getFile() {
+		return file;
+	}
+
+	public void setFile(File file) {
+		this.file = file;
 	}
 
 	public Map<String, String> getHeaders() {
@@ -68,6 +87,8 @@ public class Response implements Recyclable {
 	
 	@Override
 	public void recycle() {
+		application = null;
+		file = null;
 		session = null;
 		headers.clear();
 		((ByteArrayOutputStream)outputStream).reset();

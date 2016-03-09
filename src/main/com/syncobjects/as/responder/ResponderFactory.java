@@ -15,6 +15,7 @@
  */
 package com.syncobjects.as.responder;
 
+import com.syncobjects.as.api.FileResult;
 import com.syncobjects.as.api.RedirectResult;
 import com.syncobjects.as.api.RenderResult;
 import com.syncobjects.as.api.Result;
@@ -26,25 +27,32 @@ import com.syncobjects.as.core.Application;
  *
  */
 public class ResponderFactory {
+	private FileResponder file;
 	private RedirectResponder redirect;
 	private RenderResponder render;
 
 	public ResponderFactory() {
+		this.file = new FileResponder();
 		this.redirect = new RedirectResponder();
 		this.render = new RenderResponder();
 	}
 
 	public void destroy() throws Exception {
+		file.destroy();
 		redirect.destroy();
 		render.destroy();
 	}
 
 	public void init(Application application) throws Exception {
+		file.init(application.getContext());
 		redirect.init(application.getContext());
 		render.init(application.getContext());
 	}
 
 	public Responder find(Result result) {
+		if(result instanceof FileResult) {
+			return file;
+		}
 		if(result instanceof RedirectResult) {
 			return redirect;
 		}
