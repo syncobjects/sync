@@ -181,6 +181,8 @@ public class Application {
 		// setting up context
 		context.clear();
 		context.put(ApplicationContext.HOME, base.getAbsolutePath());
+		context.put(ApplicationContext.PRIVATE_FOLDER, base.getAbsolutePath() + File.separator + "private");
+		context.put(ApplicationContext.PUBLIC_FOLDER, base.getAbsolutePath() + File.separator + "public");
 		context.put(ApplicationContext.LOCALE, config.getLocale());
 		context.put(ApplicationContext.PROPERTIES, config);
 	}
