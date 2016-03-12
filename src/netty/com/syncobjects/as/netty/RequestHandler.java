@@ -334,8 +334,8 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		File file = new File(application.getConfig().getPublicDirectory(), path);
 		
-		this.response.setApplication(application);
-		this.response.setFile(file);
+		response.setApplication(application);
+		response.setFile(file);
 		
 		return sendFile(ctx, response);
 	}
@@ -399,6 +399,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 			Session session = sessionFactory.find(requestWrapper);
 			requestWrapper.setSession(session);
 			response.setSession(session);
+			response.setApplication(application);
 
 			InterceptorFactory interceptorFactory = application.getInterceptorFactory();
 			InterceptorBean interceptors[] = interceptorFactory.find(controller.interceptedBy());
