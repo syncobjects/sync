@@ -37,6 +37,7 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -159,7 +160,12 @@ public class ServerImpl implements Server {
             b.channel(NioServerSocketChannel.class);
             b.childHandler(new ServerInitializer());
             try {
-	            Channel ch = b.bind(config.getListenPort()).sync().channel();
+            	ChannelFuture chf = null;
+            	if(config.getListenAddress() != null)
+            		chf = b.bind(config.getListenAddress(), config.getListenPort());
+            	else
+            		chf = b.bind(config.getListenPort());
+	            Channel ch = chf.sync().channel();
 	            ch.closeFuture().sync();
             }
             catch(Exception e) {
