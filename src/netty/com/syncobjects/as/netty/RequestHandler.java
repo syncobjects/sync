@@ -272,17 +272,24 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 								String applicationHome = (String)application.getContext().get(ApplicationContext.HOME);
 								String tmpDirectoryPath = applicationHome + File.separator + "tmp";
+								File tmpfile = new File(tmpDirectoryPath, fileUpload.getFilename());
 
-								File f = fileUpload.getFile();
-								if(!f.renameTo(new File(tmpDirectoryPath, fileUpload.getFilename()))) {
-									decoder.removeHttpDataFromClean(fileUpload);
-									throw new RuntimeException("failed to place the upload file under the directory: "+tmpDirectoryPath);
+								if(fileUpload.isInMemory()) {
+									if(!fileUpload.renameTo(tmpfile)) {
+										throw new RuntimeException("failed to place the upload file under the directory: "+tmpDirectoryPath);
+									}
 								}
-
+								else {
+									if(!fileUpload.getFile().renameTo(tmpfile)) {
+										decoder.removeHttpDataFromClean(fileUpload);
+										throw new RuntimeException("failed to place the upload file under the directory: "+tmpDirectoryPath);
+									}
+								}
+								
 								com.syncobjects.as.api.FileUpload fu = new com.syncobjects.as.api.FileUpload();
 								fu.setName(fileUpload.getFilename());
 								fu.setType(fileUpload.getContentType());
-								fu.setFile(new File(tmpDirectoryPath, fileUpload.getFilename()));
+								fu.setFile(new File(tmpDirectoryPath, fileUpload.getFilename()));								
 								requestWrapper.getFiles().put(fileUpload.getName(), fu);
 							} else {
 								log.error("file yet to be completed but should not");

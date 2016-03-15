@@ -19,9 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * 
+ * Configuration class for the server.properties file.
  * @author dfroz
- *
  */
 public class ServerConfig extends Config {
 	private static final long serialVersionUID = 3938816221618284519L;
@@ -30,7 +29,7 @@ public class ServerConfig extends Config {
 	
 	public void load(InputStream is) throws IOException {
 		super.load(is);
-		listenAddress = getString("listen.address", "localhost");
+		listenAddress = getString("listen.address");
 		listenPort = getInt("listen.port", 8080);
 	}
 
