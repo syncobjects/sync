@@ -21,6 +21,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.syncobjects.as.optimizer.OInitializer;
+
 /**
  * 
  * @author dfroz
@@ -54,10 +56,10 @@ public class InitializerFactory {
 	public void register(Class<?> clazz) throws Exception {
 		if(clazz == null)
 			throw new IllegalArgumentException("class cannot be null");
-		if(clazz.isAssignableFrom(IInitializer.class))
+		if(clazz.isAssignableFrom(OInitializer.class))
 			throw new IllegalArgumentException(clazz+" is not a valid @Initializer");
 		
-		IInitializer i = (IInitializer)clazz.newInstance();
+		OInitializer i = (OInitializer)clazz.newInstance();
 		initializers.add(new InitializerBean(application, i));
 	}
 }

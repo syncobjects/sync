@@ -29,6 +29,7 @@ import com.syncobjects.as.api.ApplicationContext;
 import com.syncobjects.as.converter.ConverterFactory;
 import com.syncobjects.as.i18n.MessageFactory;
 import com.syncobjects.as.i18n.ResourceBundleMessageFactory;
+import com.syncobjects.as.optimizer.Optimizer;
 import com.syncobjects.as.responder.ResponderFactory;
 import com.syncobjects.as.util.FileUtils;
 import com.syncobjects.as.util.StringUtils;
@@ -63,13 +64,12 @@ public class Application {
 	
 	private void initClassLoader() throws Exception {
 		if(log.isTraceEnabled())
-			log.trace("initializing ClassLoader for application {}", this);
-		
+			log.trace("{} initializing ClassLoader", this);
 		//
-		// Enhance Application
+		// Optimize Application
 		//
-		Enhancer enhancer = new Enhancer(this);
-		enhancer.enhance();
+		Optimizer optimizer = new Optimizer(this);
+		optimizer.optimize();
 		//
 		// Initialize Application loader
 		//
@@ -118,7 +118,7 @@ public class Application {
 		if(workdir.exists()) {
 			// clear this directory
 			if(log.isTraceEnabled())
-				log.trace("deleting work directory {} ... ", workdir.getAbsolutePath());
+				log.trace("{} cleaning work directory", this);
 			FileUtils.delete(workdir);
 		}
 		if(!workdir.exists())
@@ -152,7 +152,7 @@ public class Application {
 		this.domains = domains.toArray(new String[0]);
 		
 		if(log.isTraceEnabled())
-			log.trace("application responsible for domains: {}", domains);
+			log.trace("{} responsible for domains: {}", this, domains);
 		
 		// locale configuration
 		String localeString = config.getString(ApplicationConfig.LOCALE_KEY, Locale.getDefault().toString());
@@ -177,7 +177,7 @@ public class Application {
 	
 	private void initContext() throws Exception {
 		if(log.isTraceEnabled())
-			log.trace("initializing ApplicationContext for application {}", this);
+			log.trace("{} initializing ApplicationContext", this);
 		// setting up context
 		context.clear();
 		context.put(ApplicationContext.HOME, base.getAbsolutePath());
@@ -227,14 +227,11 @@ public class Application {
 				log.trace("registering @Controller "+clazz.getName());
 			controllerFactory.register(clazz);
 		}
-
-		if(log.isInfoEnabled())
-			log.info("application {} started and running", this);
 	}
 	
 	public void start() throws Exception {
 		if(log.isInfoEnabled())
-			log.info("starting "+this);
+			log.info("{} starting",this);
 		init();
 	}
 	
@@ -294,7 +291,7 @@ public class Application {
 	
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append("Application-").append(name);
+		sb.append("@Application ").append(name);
 		return sb.toString();
 	}
 }

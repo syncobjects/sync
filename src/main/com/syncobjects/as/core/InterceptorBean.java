@@ -15,7 +15,6 @@
  */
 package com.syncobjects.as.core;
 
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 
@@ -26,11 +25,13 @@ import com.syncobjects.as.api.ApplicationContext;
 import com.syncobjects.as.api.Converter;
 import com.syncobjects.as.api.CookieContext;
 import com.syncobjects.as.api.ErrorContext;
+import com.syncobjects.as.api.FileUpload;
 import com.syncobjects.as.api.MessageContext;
 import com.syncobjects.as.api.RequestContext;
 import com.syncobjects.as.api.Result;
 import com.syncobjects.as.api.SessionContext;
 import com.syncobjects.as.i18n.MessageContextImpl;
+import com.syncobjects.as.optimizer.OInterceptor;
 
 /**
  * 
@@ -40,9 +41,9 @@ import com.syncobjects.as.i18n.MessageContextImpl;
 public class InterceptorBean implements ResponseBean {
 	private static Logger log = LoggerFactory.getLogger(InterceptorBean.class);
 	private Application application;
+	private OInterceptor interceptor;
 	private CookieContext cookieContext;
 	private ErrorContext errorContext;
-	private IInterceptor interceptor;
 	private MessageContext messageContext;
 	private RequestContext requestContext;
 	private SessionContext sessionContext;
@@ -51,7 +52,7 @@ public class InterceptorBean implements ResponseBean {
 		super();
 	}
 
-	public InterceptorBean(Application application, IInterceptor interceptor) {
+	public InterceptorBean(Application application, OInterceptor interceptor) {
 		this.application = application;
 		this.interceptor = interceptor;
 	}
@@ -62,9 +63,6 @@ public class InterceptorBean implements ResponseBean {
 		if(response == null)
 			throw new IllegalArgumentException("invalid response argument");
 
-		if(log.isDebugEnabled())
-			log.debug("@Interceptor "+this+".after()");
-
 		Session session = request.getSession();
 
 		errorContext = request.getSession().getErrorContext();
@@ -72,68 +70,19 @@ public class InterceptorBean implements ResponseBean {
 		sessionContext = request.getSession().getSessionContext();
 		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), session.getSessionContext());
 
-		Method method = null;
-
-		/*
-		 *  INVOKE SPECIALS
-		 */
-		method = interceptor._asSettersApplicationContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, application.getContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersCookieContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, request.getCookieContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersErrorContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, session.getErrorContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersMessageContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, messageContext); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersRequestContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, request.getRequestContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersSessionContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, session.getSessionContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
+		interceptor._asApplicationContext(application.getContext());
+		interceptor._asCookieContext(cookieContext);
+		interceptor._asMessageContext(messageContext);
+		interceptor._asRequestContext(requestContext);
+		interceptor._asSessionContext(sessionContext);
 
 		/*
 		 *  INVOKE SETTERS
 		 */
-
 		Set<String> keys = request.getParameters().keySet();
 		if(keys != null) {
 			for(String name: keys) {
 				List<String> values = request.getParameters().get(name);
-
 				if(values.size() == 0) {
 					continue;
 				}
@@ -141,40 +90,78 @@ public class InterceptorBean implements ResponseBean {
 				if(log.isTraceEnabled())
 					log.trace("binding ... @Parameter "+this+"."+name);
 
-				Class<?> type = interceptor._asFields().get(name);
+				Class<?> type = interceptor._asParameters().get(name);
 				if(type == null) {
 					if(log.isDebugEnabled()) {
-						log.debug("@Parameter "+name+" not declared by @Interceptor "+this+
+						log.debug("@Parameter "+name+" not declared by @Controller "+this+
 								"; requested url: "+request.getUri()+"");
 					}
 					continue;
 				}
-
+				
+				// check for defined converter
 				Converter<?> converter = application.getConverterFactory().getConverter(type);
+				Class<?> converterClazz = interceptor._asParameterConverter(name);
+				if(converterClazz != null) {
+					try { converter = (Converter<?>)converterClazz.newInstance(); }
+					catch(Exception e) {
+						throw new InterceptorBeanException(e, this);
+					}
+				}
 				if(converter == null) {
-					String errmsg = "Failed to convert @Parameter "+name+" to @Interceptor "+this+"."+type.getName();
+					log.error("{}: @Converter not found to handle type: {}", application, type.getName());
+					StringBuilder sb = new StringBuilder();
+					sb.append(application).append(" failed to locate @Converter to deal with @Parameter ").append(this).append(".").append(name);
+					String errmsg = sb.toString();
 					log.error(errmsg);
-					log.error("Converter not found for type: \""+type.getName()+"\"");
 					throw new RuntimeException(errmsg);
 				}
-				
-				if(log.isTraceEnabled())
-					log.trace(converter+".convert({})", values);
-
 				try {
-					Object argument = converter.convert(values.toArray(new String[0]));
-					method = interceptor._asSetters().get(name);
-					method.invoke(interceptor, argument);
+					Object value = converter.convert(values.toArray(new String[0]));
+					interceptor._asParameter(name, value);
 				}
-				catch(Exception e) { throw new InterceptorBeanException(e, this); }
+				catch(Exception e) {
+					throw new InterceptorBeanException(e, this);
+				}
+			}
+		}
+		keys = request.getFiles().keySet();
+		if(keys != null) {
+			for(String name: keys) {
+				FileUpload file = request.getFiles().get(name);
+				Class<?> type = interceptor._asParameters().get(name);
+				if(type == null) {
+					if(log.isDebugEnabled()) {
+						log.debug("@Parameter "+name+" not declared by @Controller "+this+
+								"; requested url: "+request.getUri());
+					}
+					continue;
+				}
+				if(type != FileUpload.class) {
+					if(log.isDebugEnabled())
+						log.debug("@Parameter "+name+" not declared as FileUpload at @Controller "+this+
+								"; requested url: "+request.getUri());
+					continue;
+				}
+				try {
+					interceptor._asParameter(name, file);
+				}
+				catch(Exception e) {
+					throw new InterceptorBeanException(e, this);
+				}
 			}
 		}
 
 		if(log.isTraceEnabled())
-			log.trace("invoking @Action "+this+".after()");
+			log.trace("invoking @Action {}.after()", interceptor.getClass().getName());
+
 		Result result = null;
-		try { result = (Result)interceptor._asAfter().invoke(interceptor, new Object[0]); }
+		
+		try { result = interceptor._asAfter(); }
 		catch(Exception e) { throw new InterceptorBeanException(e, this); }
+
+		if(log.isTraceEnabled())
+			log.trace("@Controller {}.after() resulted in {}", this, result);
 
 		return result;
 	}
@@ -185,140 +172,121 @@ public class InterceptorBean implements ResponseBean {
 		if(response == null)
 			throw new IllegalArgumentException("invalid response argument");
 
-		if(log.isDebugEnabled())
-			log.debug("@Interceptor "+this+".before()");
-
 		Session session = request.getSession();
+
 		errorContext = request.getSession().getErrorContext();
 		requestContext = request.getRequestContext();
 		sessionContext = request.getSession().getSessionContext();
 		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), session.getSessionContext());
 
-		Method method = null;
-
-		/*
-		 *  INVOKE SPECIALS
-		 */
-		method = interceptor._asSettersApplicationContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, application.getContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersCookieContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, request.getCookieContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersErrorContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, session.getErrorContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersMessageContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, messageContext); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersRequestContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, request.getRequestContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
-
-		method = interceptor._asSettersSessionContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(interceptor, session.getSessionContext()); }
-			catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		}
+		interceptor._asApplicationContext(application.getContext());
+		interceptor._asCookieContext(cookieContext);
+		interceptor._asMessageContext(messageContext);
+		interceptor._asRequestContext(requestContext);
+		interceptor._asSessionContext(sessionContext);
 
 		/*
 		 *  INVOKE SETTERS
 		 */
-
 		Set<String> keys = request.getParameters().keySet();
 		if(keys != null) {
 			for(String name: keys) {
 				List<String> values = request.getParameters().get(name);
-
 				if(values.size() == 0) {
 					continue;
 				}
 
 				if(log.isTraceEnabled())
-					log.trace("binding ... "+this+" with parameter: "+name);
+					log.trace("binding ... @Parameter "+this+"."+name);
 
-				Class<?> type = interceptor._asFields().get(name);
+				Class<?> type = interceptor._asParameters().get(name);
 				if(type == null) {
 					if(log.isDebugEnabled()) {
-						log.debug("@Parameter "+name+" not declared by @Interceptor "+this+
+						log.debug("@Parameter "+name+" not declared by @Controller "+this+
 								"; requested url: "+request.getUri()+"");
 					}
 					continue;
 				}
-
+				
+				// check for defined converter
 				Converter<?> converter = application.getConverterFactory().getConverter(type);
+				Class<?> converterClazz = interceptor._asParameterConverter(name);
+				if(converterClazz != null) {
+					try { converter = (Converter<?>)converterClazz.newInstance(); }
+					catch(Exception e) {
+						throw new InterceptorBeanException(e, this);
+					}
+				}
 				if(converter == null) {
-					String errmsg = "Failed to convert @Parameter "+name+" to @Interceptor "+this+"."+type.getName();
+					log.error("{}: @Converter not found to handle type: {}", application, type.getName());
+					StringBuilder sb = new StringBuilder();
+					sb.append(application).append(" failed to locate @Converter to deal with @Parameter ").append(this).append(".").append(name);
+					String errmsg = sb.toString();
 					log.error(errmsg);
-					log.error("Converter not found for type: \""+type.getName()+"\"");
 					throw new RuntimeException(errmsg);
 				}
-
-				if(log.isTraceEnabled())
-					log.trace(converter+".convert({})", values.get(0));
-
 				try {
-					Object argument = converter.convert(values.toArray(new String[0]));
-					method = interceptor._asSetters().get(name);
-					method.invoke(interceptor, argument);
+					Object value = converter.convert(values.toArray(new String[0]));
+					interceptor._asParameter(name, value);
 				}
-				catch(Exception e) { throw new InterceptorBeanException(e, this); }
+				catch(Exception e) {
+					throw new InterceptorBeanException(e, this);
+				}
+			}
+		}
+		keys = request.getFiles().keySet();
+		if(keys != null) {
+			for(String name: keys) {
+				FileUpload file = request.getFiles().get(name);
+				Class<?> type = interceptor._asParameters().get(name);
+				if(type == null) {
+					if(log.isDebugEnabled()) {
+						log.debug("@Parameter "+name+" not declared by @Controller "+this+
+								"; requested url: "+request.getUri());
+					}
+					continue;
+				}
+				if(type != FileUpload.class) {
+					if(log.isDebugEnabled())
+						log.debug("@Parameter "+name+" not declared as FileUpload at @Controller "+this+
+								"; requested url: "+request.getUri());
+					continue;
+				}
+				try {
+					interceptor._asParameter(name, file);
+				}
+				catch(Exception e) {
+					throw new InterceptorBeanException(e, this);
+				}
 			}
 		}
 
 		if(log.isTraceEnabled())
-			log.trace("invoking @Action "+this+".before()");
+			log.trace("invoking @Action {}.before()", interceptor.getClass().getName());
 
 		Result result = null;
 		
-		try { result = (Result)interceptor._asBefore().invoke(interceptor, new Object[0]); }
+		try { result = interceptor._asBefore(); }
 		catch(Exception e) { throw new InterceptorBeanException(e, this); }
-		
+
+		if(log.isTraceEnabled())
+			log.trace("@Controller {}.before() resulted in {}", this, result);
+
 		return result;
 	}
 
-	public IInterceptor getInterceptor() {
+	public OInterceptor getInterceptor() {
 		return interceptor;
 	}
 
-	public Object getField(String name) throws Exception {
+	public Object getParameter(String name) throws Exception {
 		if(name == null)
 			throw new IllegalArgumentException("name is null");
-		Method method = interceptor._asGetters().get(name);
-		if(method == null) {
-			throw new RuntimeException("@Interceptor "+this+" has no field: "+name);
-		}
-		return method.invoke(interceptor, new Object[0]);
+		return interceptor._asParameter(name);
 	}
 
-	public Set<String> getFields() {
-		return interceptor._asFields().keySet();
+	public Set<String> getParametersName() {
+		return interceptor._asParameters().keySet();
 	}
 
 	public ApplicationContext getApplicationContext() {

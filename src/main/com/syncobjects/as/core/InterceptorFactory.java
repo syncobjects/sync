@@ -18,6 +18,9 @@ package com.syncobjects.as.core;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.syncobjects.as.optimizer.OInitializer;
+import com.syncobjects.as.optimizer.OInterceptor;
+
 /**
  * @author dfroz
  */
@@ -30,23 +33,25 @@ public class InterceptorFactory {
 	}
 
 	public InterceptorBean[] find(Class<?> classes[]) {
-		int total = 0;
+		if(classes == null)
+			return null;
+		
+		int total = 0;		
 		for(int i=0; i < classes.length; i++) {
-			if(classes[i].equals(Object.class))
-				continue;
+			// if(classes[i].equals(Object.class))
+			//	continue;
 			if(map.containsKey(classes[i]))
 				total++;
 		}
-		
 		if(total == 0) {
-			return new InterceptorBean[0];
+			return null;
 		}
 		
 		int j=0;
 		InterceptorBean interceptors[] = new InterceptorBean[total];
 		for(int i=0; i < classes.length; i++) {
-			if(classes[i].equals(Object.class))
-				continue;
+			// if(classes[i].equals(Object.class))
+			//	continue;
 			InterceptorBean interceptor = map.get(classes[i]);
 			interceptors[j++] = interceptor;
 		}
@@ -56,10 +61,10 @@ public class InterceptorFactory {
 	public void register(Class<?> clazz) throws Exception {
 		if(clazz == null)
 			throw new IllegalArgumentException("class cannot be null");
-		if(clazz.isAssignableFrom(IInitializer.class))
+		if(clazz.isAssignableFrom(OInitializer.class))
 			throw new IllegalArgumentException(clazz+" is not a valid @Initializer");
 
-		IInterceptor i = (IInterceptor)clazz.newInstance();
+		OInterceptor i = (OInterceptor)clazz.newInstance();
 		map.put(clazz, new InterceptorBean(application, i));
 	}
 }

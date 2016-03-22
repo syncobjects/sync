@@ -410,28 +410,30 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 			InterceptorFactory interceptorFactory = application.getInterceptorFactory();
 			InterceptorBean interceptors[] = interceptorFactory.find(controller.interceptedBy());
-			for(int i=0; i < interceptors.length; i++) {
-				//
-				// default action is to return null; if not null, direct to response and end the req/resp cycle
-				//
-				Result interceptorResult = interceptors[i].before(requestWrapper, response);
-				if(interceptorResult != null) {
+			if(interceptors != null) {
+				for(int i=0; i < interceptors.length; i++) {
 					//
-					// find the responder which will handle the result. populate data using the response object.
+					// default action is to return null; if not null, direct to response and end the req/resp cycle
 					//
-					Responder responder = responderFactory.find(interceptorResult);
-					if(responder == null) {
-						log.error("no responder encountered to handle result: "+interceptorResult);
-						sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-						return true;
+					Result interceptorResult = interceptors[i].before(requestWrapper, response);
+					if(interceptorResult != null) {
+						//
+						// find the responder which will handle the result. populate data using the response object.
+						//
+						Responder responder = responderFactory.find(interceptorResult);
+						if(responder == null) {
+							log.error("no responder encountered to handle result: "+interceptorResult);
+							sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+							return true;
+						}
+						responder.respond(response, interceptors[i], interceptorResult);
+						if(log.isTraceEnabled())
+							log.trace(interceptors[i]+".before() returned result: "+interceptorResult);
+						if(interceptorResult instanceof FileResult)
+							return sendFile(ctx, response);
+						else
+							return sendResponse(ctx, response);
 					}
-					responder.respond(response, interceptors[i], interceptorResult);
-					if(log.isTraceEnabled())
-						log.trace(interceptors[i]+".before() returned result: "+interceptorResult);
-					if(interceptorResult instanceof FileResult)
-						return sendFile(ctx, response);
-					else
-						return sendResponse(ctx, response);
 				}
 			}
 
@@ -448,28 +450,30 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				log.trace(controller+" returned result: "+result);
 
 			// interceptors after()
-			for(int i=0; i < interceptors.length; i++) {
-				//
-				// default action is to return null; if not null, direct to response and end the req/resp cycle
-				//
-				Result interceptorResult = interceptors[i].after(requestWrapper, response);
-				if(interceptorResult != null) {
+			if(interceptors != null) {
+				for(int i=0; i < interceptors.length; i++) {
 					//
-					// find the responder which will handle the result. populate data using the response object.
+					// default action is to return null; if not null, direct to response and end the req/resp cycle
 					//
-					Responder responder = responderFactory.find(interceptorResult);
-					if(responder == null) {
-						log.error("no responder encountered to handle result: "+interceptorResult);
-						sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-						return true;
+					Result interceptorResult = interceptors[i].after(requestWrapper, response);
+					if(interceptorResult != null) {
+						//
+						// find the responder which will handle the result. populate data using the response object.
+						//
+						Responder responder = responderFactory.find(interceptorResult);
+						if(responder == null) {
+							log.error("no responder encountered to handle result: "+interceptorResult);
+							sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+							return true;
+						}
+						if(log.isTraceEnabled())
+							log.trace(interceptors[i]+".after() returned result: "+interceptorResult);
+						responder.respond(response, interceptors[i], interceptorResult);
+						if(interceptorResult instanceof FileResult)
+							return sendFile(ctx, response);
+						else
+							return sendResponse(ctx, response);
 					}
-					if(log.isTraceEnabled())
-						log.trace(interceptors[i]+".after() returned result: "+interceptorResult);
-					responder.respond(response, interceptors[i], interceptorResult);
-					if(interceptorResult instanceof FileResult)
-						return sendFile(ctx, response);
-					else
-						return sendResponse(ctx, response);
 				}
 			}
 

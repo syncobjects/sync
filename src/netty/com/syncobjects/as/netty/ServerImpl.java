@@ -51,6 +51,7 @@ public class ServerImpl implements Server {
 	private static final Logger log = LoggerFactory.getLogger(ServerImpl.class);
 	private final ServerConfig config = new ServerConfig();
 	private List<Application> applications;
+	private static final String name = "Netty";
 	
 	@Override
 	public void init() {
@@ -69,28 +70,28 @@ public class ServerImpl implements Server {
 				configurator.doConfigure(logbackfile);
 			}
 			catch(JoranException je) {
-				System.err.println("failed to configure logback: "+je.getMessage());
+				System.err.println(this+" has failed to configure logback: "+je.getMessage());
 				je.printStackTrace();
 				System.exit(1);
 			}
 		}
 		
 		if(log.isInfoEnabled())
-			log.info("initializing Sync AS with Netty using directory {}", basedir);
+			log.info("{} initializing using directory {}", this, basedir);
 		
 		File mimesfile = new File(basedir, "conf"+File.separator+"mime.types");
 		if(mimesfile.exists()) {
 			if(log.isTraceEnabled())
-				log.trace("loading mimes from {}", mimesfile.getAbsolutePath());
+				log.trace("{} loading mimes from {}", this, mimesfile.getAbsolutePath());
 			try { MimeUtils.init(mimesfile); }
 			catch(Exception e) {
-				log.error("failed to initialize mimes.type file: {}", mimesfile, e);
+				log.error("{} has failed to initialize mimes.type file: {}", this, mimesfile, e);
 				System.exit(1);
 			}
 		}
 		else {
 			if(log.isTraceEnabled())
-				log.trace("loading default/known mime types.");
+				log.trace("{} loading default/known mime types.", this);
 			MimeUtils.init();
 		}
 		
@@ -101,10 +102,12 @@ public class ServerImpl implements Server {
 			config.load(fis);
 		}
 		catch(FileNotFoundException e) {
-			throw new RuntimeException(configFile+" does not exist");
+			log.error("{} has failed to locate {}", this, configFile);
+			System.exit(1);
 		}
 		catch(IOException e) {
-			throw new RuntimeException("failed to read configuration from "+configFile, e);
+			log.error("{} has failed to read configuration file {}", this, configFile);
+			System.exit(1);
 		}
 		
 		File appdir = new File(basedir, Globals.APPLICATIONS_DIRNAME);
@@ -121,34 +124,35 @@ public class ServerImpl implements Server {
 			Application application = new Application(dir);
 			try {
 				application.start();
+				ApplicationManager.register(application);
+				applications.add(application);
 			}
-			catch(Exception e) {
-				log.error("failed to initialize application: {}", application);
-				log.error("exception caught: ", e);
+			catch(Throwable t) {
+				log.error("{} has failed to initialize application: {}", this, application);
+				log.error("exception caught: ", t);
+				log.error("invalidating {} until the problem is fixed", application);
 			}
-			ApplicationManager.register(application);
-			applications.add(application);
 		}
 		
 		Runtime.getRuntime().addShutdownHook(new Thread("shutdown") {
 			public void run() {
 				if(log.isInfoEnabled())
-					log.info("initializing graceful shutdown");
+					log.info("{} is initializing graceful shutdown", this);
 				
 				// stopping process
 				for(Application application: applications) {
 					try {
 						if(log.isInfoEnabled())
-							log.info("stopping application {}", application);
+							log.info("stopping {}", application);
 						application.stop();
 					}
 					catch(Exception e) {
-						log.error("failed to stop application {}: ",application, e);
+						log.error("{} failed to stop {}: ", this, application, e);
 					}
 				}
 				
 				if(log.isInfoEnabled())
-					log.info("Applications stopped. Goodbye!");
+					log.info("@Applications stopped. Goodbye!");
 			}
 		});
 		
@@ -169,11 +173,17 @@ public class ServerImpl implements Server {
 	            ch.closeFuture().sync();
             }
             catch(Exception e) {
-            	log.error("failed to bind to socket: ", e);
+            	log.error("{} has failed to bind to socket: ", this, e);
             }
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("@Server ").append(name);
+		return sb.toString();
 	}
 }

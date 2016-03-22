@@ -125,8 +125,8 @@ public class RenderResponder implements Responder {
 			attributes.put("_messages", bean.getMessageContext());
 		}
 
-		for(String field: bean.getFields()) {
-			Object object = bean.getField(field);
+		for(String field: bean.getParametersName()) {
+			Object object = bean.getParameter(field);
 			attributes.put(field, object);
 		}
 		// result parameters directly to the template root

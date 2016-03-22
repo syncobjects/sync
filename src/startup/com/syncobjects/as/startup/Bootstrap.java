@@ -73,9 +73,6 @@ public class Bootstrap {
 		Object serverObject = method.invoke(null, new Object[0]);
 		
 		Class<?> serverClass = Class.forName("com.syncobjects.as.core.Server", false, serverClassLoader);
-		// Class<?> parameterTypes[] = new Class<?>[] { Class.forName("java.lang.ClassLoader") };
-		// method = serverClass.getDeclaredMethod("setClassLoader", parameterTypes);
-		// method.invoke(serverObject, serverClassLoader);
 		method = serverClass.getDeclaredMethod("init", new Class<?>[0]);
 		method.invoke(serverObject, new Object[0]);
 	}
@@ -86,7 +83,7 @@ public class Bootstrap {
 			daemon.start();
 		}
 		catch(Exception e) {
-			System.err.println("failed to start Sync App Server");
+			System.err.println("failed to start SAS");
 			e.printStackTrace();
 		}
 	}

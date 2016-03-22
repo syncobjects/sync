@@ -15,14 +15,12 @@
  */
 package com.syncobjects.as.core;
 
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.syncobjects.as.api.Action;
 import com.syncobjects.as.api.ApplicationContext;
 import com.syncobjects.as.api.Converter;
 import com.syncobjects.as.api.CookieContext;
@@ -33,17 +31,18 @@ import com.syncobjects.as.api.RequestContext;
 import com.syncobjects.as.api.Result;
 import com.syncobjects.as.api.SessionContext;
 import com.syncobjects.as.i18n.MessageContextImpl;
+import com.syncobjects.as.optimizer.OController;
 
 /**
+ * Represents a \@Controller so abstract the optimized Controller interface from other code
  * 
  * @author dfroz
- *
  */
 public class ControllerBean implements ResponseBean {
 	private static Logger log = LoggerFactory.getLogger(ControllerBean.class);
-	private Method action;
+	private String action;
 	private Application application;
-	private IController controller;
+	private OController controller;
 	private CookieContext cookieContext;
 	private ErrorContext errorContext;
 	private MessageContext messageContext;
@@ -54,7 +53,7 @@ public class ControllerBean implements ResponseBean {
 		super();
 	}
 
-	public ControllerBean(Application application, IController controller, Method action) {
+	public ControllerBean(Application application, OController controller, String action) {
 		this.controller = controller;
 		this.application = application;
 		this.action = action;
@@ -73,7 +72,7 @@ public class ControllerBean implements ResponseBean {
 			throw new IllegalArgumentException("invalid response argument");
 
 		if(log.isDebugEnabled())
-			log.debug("@Action "+this+"."+action.getName()+"()");
+			log.debug("@Action "+this+"."+action+"()");
 
 		Session session = request.getSession();
 
@@ -82,58 +81,15 @@ public class ControllerBean implements ResponseBean {
 		sessionContext = request.getSession().getSessionContext();
 		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), session.getSessionContext());
 
-		Method method = null;
-
 		/*
 		 *  INVOKE SPECIALS
 		 */
-		method = controller._asSettersApplicationContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(controller, application.getContext()); }
-			catch(Exception e) { throw new ControllerBeanException(e, this); }
-		}
-
-		method = controller._asSettersCookieContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(controller, request.getCookieContext()); }
-			catch(Exception e) { throw new ControllerBeanException(e, this); }
-		}
-
-		method = controller._asSettersErrorContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(controller, session.getErrorContext()); }
-			catch(Exception e) { throw new ControllerBeanException(e, this); }
-		}
-
-		method = controller._asSettersMessageContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(controller, messageContext); }
-			catch(Exception e) { throw new ControllerBeanException(e, this); }
-		}
-
-		method = controller._asSettersRequestContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(controller, request.getRequestContext()); }
-			catch(Exception e) { throw new ControllerBeanException(e, this); }
-		}
-
-		method = controller._asSettersSessionContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context "+this+"."+method.getName()+"()");
-			try { method.invoke(controller, session.getSessionContext()); }
-			catch(Exception e) { throw new ControllerBeanException(e, this); }
-		}
+		controller._asApplicationContext(application.getContext());
+		controller._asCookieContext(request.getCookieContext());
+		controller._asErrorContext(session.getErrorContext());
+		controller._asMessageContext(messageContext);
+		controller._asRequestContext(request.getRequestContext());
+		controller._asSessionContext(session.getSessionContext());
 
 		/*
 		 *  INVOKE SETTERS
@@ -143,14 +99,13 @@ public class ControllerBean implements ResponseBean {
 		if(keys != null) {
 			for(String name: keys) {
 				List<String> values = request.getParameters().get(name);
-
 				if(values.size() == 0)
 					continue;
 
 				if(log.isTraceEnabled())
 					log.trace("binding ... @Parameter "+this+"."+name);
 
-				Class<?> type = controller._asFields().get(name);
+				Class<?> type = controller._asParameters().get(name);
 				if(type == null) {
 					if(log.isDebugEnabled()) {
 						log.debug("@Parameter "+name+" not declared by @Controller "+this+
@@ -158,18 +113,27 @@ public class ControllerBean implements ResponseBean {
 					}
 					continue;
 				}
-
+				
+				// check for defined converter
 				Converter<?> converter = application.getConverterFactory().getConverter(type);
+				Class<?> converterClazz = controller._asParameterConverter(name);
+				if(converterClazz != null) {
+					try { converter = (Converter<?>)converterClazz.newInstance(); }
+					catch(Exception e) {
+						throw new ControllerBeanException(e, this);
+					}
+				}
 				if(converter == null) {
-					String errmsg = "failed to convert @Parameter "+name+" to @Controller "+this+"."+type.getName();
+					log.error("{}: @Converter not found to handle type: {}", application, type.getName());
+					StringBuilder sb = new StringBuilder();
+					sb.append(application).append(" failed to locate @Converter to deal with @Parameter ").append(this).append(".").append(name);
+					String errmsg = sb.toString();
 					log.error(errmsg);
-					log.error("Converter not found for type: \""+type.getName()+"\"");
 					throw new RuntimeException(errmsg);
 				}
 				try {
-					Object argument = converter.convert(values.toArray(new String[0]));
-					method = controller._asSetters().get(name);
-					method.invoke(controller, argument);
+					Object value = converter.convert(values.toArray(new String[0]));
+					controller._asParameter(name, value);
 				}
 				catch(Exception e) {
 					throw new ControllerBeanException(e, this);
@@ -180,7 +144,7 @@ public class ControllerBean implements ResponseBean {
 		if(keys != null) {
 			for(String name: keys) {
 				FileUpload file = request.getFiles().get(name);
-				Class<?> type = controller._asFields().get(name);
+				Class<?> type = controller._asParameters().get(name);
 				if(type == null) {
 					if(log.isDebugEnabled()) {
 						log.debug("@Parameter "+name+" not declared by @Controller "+this+
@@ -195,8 +159,7 @@ public class ControllerBean implements ResponseBean {
 					continue;
 				}
 				try {
-					method = controller._asSetters().get(name);
-					method.invoke(controller, file);
+					controller._asParameter(name, file);
 				}
 				catch(Exception e) {
 					throw new ControllerBeanException(e, this);
@@ -205,33 +168,32 @@ public class ControllerBean implements ResponseBean {
 		}
 
 		if(log.isTraceEnabled())
-			log.trace("invoking @Action {}.{}()", controller.getClass().getName(), action.getName());
+			log.trace("invoking @Action {}.{}()", controller.getClass().getName(), action);
 
 		Result result = null;
 		
-		try { result = (Result)action.invoke(controller, new Object[0]); }
+		try { result = controller._asAction(action); }
 		catch(Exception e) { throw new ControllerBeanException(e, this); }
 
 		if(log.isTraceEnabled())
-			log.trace("@Controller {}.{}() resulted in {}", this, action.getName(), result);
+			log.trace("@Controller {}.{}() resulted in {}", this, action, result);
 
 		return result;
 	}
-
+	
 	public Class<?>[] interceptedBy() {
 		if(action == null)
 			return null;
-		Action annotation = action.getAnnotation(Action.class);
-		return annotation.interceptedBy();
+		return controller._asActionInterceptors(action);
 	}
 
 	// getters & setters
 
-	public Method getAction() {
+	public String getAction() {
 		return action;
 	}
 
-	public void setAction(Method action) {
+	public void setAction(String action) {
 		this.action = action;
 	}
 
@@ -243,26 +205,22 @@ public class ControllerBean implements ResponseBean {
 		this.application = application;
 	}
 
-	public IController getController() {
+	public OController getController() {
 		return controller;
 	}
 
-	public void setController(IController controller) {
+	public void setController(OController controller) {
 		this.controller = controller;
 	}
-
-	public Object getField(String name) throws Exception {
-		if(name == null)
-			throw new IllegalArgumentException("name is null");
-		Method method = controller._asGetters().get(name);
-		if(method == null) {
-			throw new RuntimeException("@Controller "+this+" has no field: "+name);
-		}
-		return method.invoke(controller, new Object[0]);
+	
+	@Override
+	public Object getParameter(String name) throws Exception {
+		return controller._asParameter(name);
 	}
 
-	public Set<String> getFields() {
-		return controller._asFields().keySet();
+	@Override
+	public Set<String> getParametersName() {
+		return controller._asParameters().keySet();
 	}
 
 	public ApplicationContext getApplicationContext() {

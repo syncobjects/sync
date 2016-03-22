@@ -15,7 +15,6 @@
  */
 package com.syncobjects.as.core;
 
-import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -25,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.syncobjects.as.optimizer.OController;
 
 /**
  * @author dfroz
@@ -60,11 +61,14 @@ public class ControllerFactory {
 		}
 		
 		Class<?> clazz = map.get(urlPattern);
-		IController controller = (IController)clazz.newInstance();
+		OController controller = (OController)clazz.newInstance();
 		
-		Method action = controller._asActions().get(actionName);
-		if(action == null)
-			action = controller._asActions().get("main");
+		log.info("action: "+actionName);
+		String action = null;
+		if(controller._asActionIsDefined(actionName))
+			action = actionName;
+		if(action == null && controller._asActionIsDefined("main"))
+			action = "main";
 		if(action == null) {
 			if(log.isDebugEnabled()) {
 				log.debug("no @Action found on @Controller "+controller.getClass().getName()+
@@ -74,7 +78,7 @@ public class ControllerFactory {
 		}
 		
 		if(log.isTraceEnabled())
-			log.trace("found @Controller {} -> @Action {}()", controller.getClass().getName(), action.getName());
+			log.trace("found @Controller {} -> @Action {}()", controller.getClass().getName(), action);
 		
 		controllerBean.setApplication(application);
 		controllerBean.setController(controller);
@@ -94,13 +98,10 @@ public class ControllerFactory {
 	public void register(Class<?> clazz) throws Exception {
 		if(clazz == null)
 			throw new IllegalArgumentException("class cannot be null");
-		if(clazz.isAssignableFrom(IController.class))
+		if(clazz.isAssignableFrom(OController.class))
 			throw new IllegalArgumentException(clazz+" is not a valid @Controller");
-
-		if(log.isTraceEnabled())
-			log.trace("registering @Controller "+clazz.getName());
 		
-		IController controller = (IController)clazz.newInstance();
+		OController controller = (OController)clazz.newInstance();
 		String url = controller._asUrl();
 		if(log.isTraceEnabled())
 			log.trace("@Controller "+controller.getClass().getName()+" bound to URL pattern: "+url);
@@ -140,5 +141,8 @@ public class ControllerFactory {
 				map.put(urls[i], c);
 		}
 		map.put(pattern, clazz);
+		
+		if(log.isTraceEnabled())
+			log.trace("@Controller {} registered", clazz.getName());
 	}
 }

@@ -29,10 +29,10 @@ import com.syncobjects.as.api.SessionContext;
  * @author dfroz
  *
  */
-public interface ResponseBean extends Wrapper {
+public interface ResponseBean {
 	public ApplicationContext getApplicationContext();
-	public Object getField(String name) throws Exception;
-	public Set<String> getFields();
+	public Object getParameter(String name) throws Exception;
+	public Set<String> getParametersName();
 	public CookieContext getCookieContext();
 	public ErrorContext getErrorContext();
 	public MessageContext getMessageContext();

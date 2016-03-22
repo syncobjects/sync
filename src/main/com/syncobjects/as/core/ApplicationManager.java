@@ -30,8 +30,6 @@ public class ApplicationManager {
 	private static Application applications[];
 	
 	public static void register(Application application) {
-		if(log.isTraceEnabled())
-			log.trace("ApplicationManager: registering application {}", application);
 		ArrayList<Application> apps = new ArrayList<Application>();
 		if(applications != null) {
 			for(Application a: applications) {
@@ -40,6 +38,8 @@ public class ApplicationManager {
 		}
 		apps.add(application);
 		applications = apps.toArray(new Application[0]);
+		if(log.isTraceEnabled())
+			log.trace("{} registered", application);
 	}
 	
 	public static Application getApplication(String domain) {

@@ -27,6 +27,10 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.syncobjects.as.optimizer.OController;
+import com.syncobjects.as.optimizer.OInitializer;
+import com.syncobjects.as.optimizer.OInterceptor;
+
 /**
  * Responsible for load the application's classes and libraries.
  * 
@@ -60,19 +64,19 @@ public class Loader {
 	private void inspectClass(String name) throws Exception {
 		Class<?> clazz = classLoader.loadClass(name);
 		for(Class<?> c: clazz.getInterfaces()) {
-			if(c.equals(IController.class)) {
+			if(c.equals(OController.class)) {
 				if(log.isTraceEnabled())
 					log.trace("loading @Controller "+clazz.getName());
 				controllers.add(clazz);
 				return;
 			}
-			if(c.equals(IInterceptor.class)) {
+			if(c.equals(OInterceptor.class)) {
 				if(log.isTraceEnabled())
 					log.trace("loading @Interceptor "+clazz.getName());
 				interceptors.add(clazz);
 				return;
 			}
-			if(c.equals(IInitializer.class)) {
+			if(c.equals(OInitializer.class)) {
 				if(log.isTraceEnabled())
 					log.trace("loading @Initializer "+clazz.getName());
 				initializers.add(clazz);

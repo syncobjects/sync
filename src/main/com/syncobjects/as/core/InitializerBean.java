@@ -15,21 +15,20 @@
  */
 package com.syncobjects.as.core;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.syncobjects.as.optimizer.OInitializer;
 
 /**
  * @author dfroz
  */
-public class InitializerBean implements Wrapper {
+public class InitializerBean {
 	private static final Logger log = LoggerFactory.getLogger(InitializerBean.class);
 	private Application application;
-	private IInitializer initializer;
+	private OInitializer initializer;
 	
-	public InitializerBean(Application application, IInitializer initializer) {
+	public InitializerBean(Application application, OInitializer initializer) {
 		this.application = application;
 		this.initializer = initializer;
 	}
@@ -37,41 +36,18 @@ public class InitializerBean implements Wrapper {
 	public void destroy() throws Exception {
 		if(log.isTraceEnabled())
 			log.trace("@Initializer "+this+".destroy()");
-		
-		Method method = initializer._asSettersApplicationContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context ApplicationContext to @Initializer "+this);
-			method.invoke(initializer, application.getContext());
-		}
-		
-		method = initializer._asDestroy();
-		method.invoke(initializer, new Object[0]);
-	}
-	
-	public IInitializer getInitializer() {
-		return this.initializer;
+		initializer._asDestroy();
 	}
 	
 	public void init() throws Exception {
 		if(log.isDebugEnabled())
 			log.debug("@Initializer "+this+".init()");
-		
-		Method method = initializer._asSettersApplicationContext();
-		if(method != null) {
-			if(log.isTraceEnabled())
-				log.trace("binding ... @Context ApplicationContext to @Initializer "+this);
-			method.invoke(initializer, application.getContext());
-		}
-		
-		method = initializer._asInit();
-		try {
-			method.invoke(initializer, new Object[0]);
-		}
-		catch(InvocationTargetException e) {
-			e.printStackTrace();
-			throw new RuntimeException(e.getCause());
-		}
+		initializer._asApplicationContext(application.getContext());
+		initializer._asInit();
+	}
+	
+	public OInitializer getInitializer() {
+		return this.initializer;
 	}
 	
 	public String toString() {
