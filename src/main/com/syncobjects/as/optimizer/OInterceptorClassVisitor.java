@@ -17,6 +17,7 @@ import com.syncobjects.as.api.SessionContext;
 
 public class OInterceptorClassVisitor extends ClassVisitor {
 	private OInterceptorReflector reflector;
+	private boolean createdStaticMethod = false;
 
 	public OInterceptorClassVisitor(ClassVisitor cv, OInterceptorReflector reflector) {
 		super(Opcodes.ASM5, cv);
@@ -32,6 +33,19 @@ public class OInterceptorClassVisitor extends ClassVisitor {
 		System.arraycopy(interfaces, 0, ninterfaces, 0, interfaces.length);
 		ninterfaces[ninterfaces.length - 1] = Type.getInternalName(OInterceptor.class);
 		cv.visit(version, access, name, signature, superName, ninterfaces);
+	}
+	
+	@Override
+	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String exceptions[]) {
+		MethodVisitor mv = cv.visitMethod(access, name, desc, signature, exceptions);
+		if(name.equals("<clinit>")) {
+			createdStaticMethod = true;
+			//
+			// just add code to the end of the static Method
+			//
+			mv = new OInterceptorStaticMethodVisitor(mv, reflector);
+		}
+		return mv;
 	}
 	
 	/**
@@ -58,6 +72,15 @@ public class OInterceptorClassVisitor extends ClassVisitor {
 		}
 		
 		createStaticMethod();
+		
+		if(!createdStaticMethod) {
+			MethodVisitor mv = cv.visitMethod(Opcodes.ACC_STATIC, "<clinit>", "()V", null, null);
+			mv.visitCode();
+			mv = new OInterceptorStaticMethodVisitor(mv, reflector);
+			mv.visitInsn(Opcodes.RETURN);
+			mv.visitMaxs(0, 0);
+			mv.visitEnd();
+		}
 		
 		createContextMethod("_asApplicationContext", Type.getDescriptor(ApplicationContext.class), reflector.getApplicationContext());
 		createContextMethod("_asErrorContext", Type.getDescriptor(ErrorContext.class), reflector.getErrorContext());
@@ -369,89 +392,6 @@ public class OInterceptorClassVisitor extends ClassVisitor {
 	 * 
 	 */
 	private void createStaticMethod() {
-		MethodVisitor mv = cv.visitMethod(Opcodes.ACC_STATIC, "<clinit>", "()V", null, null);
-		Label start = new Label();
-		Label l1 = new Label();
-		Label l2 = new Label();
 		
-		mv.visitCode();
-		mv.visitTryCatchBlock(start, l1, l2, "java/lang/Throwable");
-		
-		/* 
-		 * _asParameters = new HashMap<String,Class<?>>() 
-		 */
-		{
-			mv.visitLabel(start);
-			mv.visitTypeInsn(Opcodes.NEW, "java/util/HashMap");
-			mv.visitInsn(Opcodes.DUP);
-			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false);
-			mv.visitFieldInsn(Opcodes.PUTSTATIC, reflector.getClazzInternalName(), "_asParameters", "Ljava/util/Map;");
-		}
-		/*
-		 * _asParameters.put("name", Type.class);
-		 */
-		for(String name: reflector.getParameters().keySet()) {
-			Label l = new Label();
-			mv.visitLabel(l);
-			mv.visitFieldInsn(Opcodes.GETSTATIC, reflector.getClazzInternalName(), "_asParameters", "Ljava/util/Map;");
-			mv.visitLdcInsn(name);
-			mv.visitLdcInsn(Type.getType(reflector.getParameters().get(name)));
-			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
-			mv.visitInsn(Opcodes.POP);
-		}
-		
-		/* 
-		 * _asConverters = new HashMap<String,Class<?>>() 
-		 */
-		{
-			Label l = new Label();
-			mv.visitLabel(l);
-			mv.visitTypeInsn(Opcodes.NEW, "java/util/HashMap");
-			mv.visitInsn(Opcodes.DUP);
-			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false);
-			mv.visitFieldInsn(Opcodes.PUTSTATIC, reflector.getClazzInternalName(), "_asConverters", "Ljava/util/Map;");
-		}
-		/*
-		 * _asConverters.put("name", Type.class);
-		 */
-		for(String name: reflector.getParameters().keySet()) {
-			if(reflector.getConverters().get(name) != null) {
-				Class<?> converter = reflector.getConverters().get(name);
-				Label l = new Label();
-				mv.visitLabel(l);
-				mv.visitFieldInsn(Opcodes.GETSTATIC, reflector.getClazzInternalName(), "_asConverters", "Ljava/util/Map;");
-				mv.visitLdcInsn(name);
-				mv.visitLdcInsn(Type.getType(converter));
-				mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
-				mv.visitInsn(Opcodes.POP);
-			}
-		}
-
-		/*
-		 * }
-		 * catch(Throwable t) {
-		 * 	throw t;
-		 * }
-		 */
-		Label throwableStart = new Label();
-		Label throwableEnd = new Label();
-		
-		mv.visitLabel(l1);
-		mv.visitJumpInsn(Opcodes.GOTO, throwableEnd);
-		
-		mv.visitLabel(l2);
-		mv.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[]{ "java/lang/Throwable" });
-		mv.visitVarInsn(Opcodes.ASTORE, 0);
-		
-		mv.visitLabel(throwableStart);
-		mv.visitVarInsn(Opcodes.ALOAD, 0);
-		mv.visitInsn(Opcodes.ATHROW);
-		
-		mv.visitLabel(throwableEnd);
-		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-		mv.visitInsn(Opcodes.RETURN);
-		mv.visitLocalVariable("t", "Ljava/lang/Throwable;", null, throwableStart, throwableEnd, 0);
-		mv.visitMaxs(3, 1);
-		mv.visitEnd();
 	}
 }

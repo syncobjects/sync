@@ -34,7 +34,6 @@ public class OInitializerClassVisitor extends ClassVisitor {
 	@Override
 	public void visitEnd() {		
 		createContextMethod("_asApplicationContext", Type.getDescriptor(ApplicationContext.class), reflector.getApplicationContext());
-		
 		createInitMethod();
 		createDestroyMethod();
 	}
