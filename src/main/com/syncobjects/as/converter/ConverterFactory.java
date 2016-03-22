@@ -21,8 +21,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.syncobjects.as.api.Converter;
-
 /**
  * @author dfroz
  */

@@ -17,8 +17,6 @@ package com.syncobjects.as.converter;
 
 import java.util.Locale;
 
-import com.syncobjects.as.api.Converter;
-
 /**
  * 
  * @author dfroz

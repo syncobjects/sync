@@ -15,8 +15,6 @@
  */
 package com.syncobjects.as.converter;
 
-import com.syncobjects.as.api.Converter;
-
 /**
  * @author dfroz
  */

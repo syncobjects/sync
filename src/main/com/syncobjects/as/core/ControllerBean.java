@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import com.syncobjects.as.api.Action;
 import com.syncobjects.as.api.ApplicationContext;
-import com.syncobjects.as.api.Converter;
 import com.syncobjects.as.api.CookieContext;
 import com.syncobjects.as.api.ErrorContext;
 import com.syncobjects.as.api.FileUpload;
@@ -32,6 +31,7 @@ import com.syncobjects.as.api.MessageContext;
 import com.syncobjects.as.api.RequestContext;
 import com.syncobjects.as.api.Result;
 import com.syncobjects.as.api.SessionContext;
+import com.syncobjects.as.converter.Converter;
 import com.syncobjects.as.i18n.MessageContextImpl;
 
 /**

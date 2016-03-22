@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.syncobjects.as.api;
+package com.syncobjects.as.converter;
 
 public interface Converter<T> {
 	public T convert(String values[]) throws Exception;
