@@ -214,17 +214,15 @@ public class Application {
 		interceptorFactory = new InterceptorFactory(this);
 		for(Class<?> clazz: loader.getInterceptors()) {
 			if(log.isTraceEnabled())
-				log.trace("registering @Interceptor "+clazz.getName());
+				log.trace("@Interceptor {} registering...",clazz.getName());
 			interceptorFactory.register(clazz);
 		}
 
 		/* Controllers */
 		controllerFactory = new ControllerFactory(this);
-		if(log.isTraceEnabled())
-			log.trace("controllerFactory: {}", controllerFactory);
 		for(Class<?> clazz: loader.getControllers()) {
 			if(log.isTraceEnabled())
-				log.trace("registering @Controller "+clazz.getName());
+				log.trace("@Controller {} registering..", clazz.getName());
 			controllerFactory.register(clazz);
 		}
 	}

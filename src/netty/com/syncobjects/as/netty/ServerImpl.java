@@ -55,7 +55,7 @@ public class ServerImpl implements Server {
 	
 	@Override
 	public void init() {
-		String basedir = System.getProperty(Globals.SYNC_BASE);
+		String basedir = System.getProperty(Globals.SAS_BASE);
 		
 		//
 		// configure & initialize logging subsystem with logback

@@ -63,7 +63,6 @@ public class ControllerFactory {
 		Class<?> clazz = map.get(urlPattern);
 		OController controller = (OController)clazz.newInstance();
 		
-		log.info("action: "+actionName);
 		String action = null;
 		if(controller._asActionIsDefined(actionName))
 			action = actionName;

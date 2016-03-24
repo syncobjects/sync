@@ -21,5 +21,5 @@ public class Globals {
 	public static final String PUBLIC_DIRNAME = "public";
 	public static final String PRIVATE_DIRNAME = "private";
 	public static final String SERVER_PROPERTIES = "server.properties";
-	public static final String SYNC_BASE = "sync.base";
+	public static final String SAS_BASE = "sas.base";
 }

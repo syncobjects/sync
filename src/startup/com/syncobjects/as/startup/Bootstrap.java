@@ -38,7 +38,7 @@ public class Bootstrap {
 			s = defaultServerClass;
 		serverFactoryClassName = s;
 		
-		String basedir = System.getProperty(Globals.SYNC_BASE);
+		String basedir = System.getProperty(Globals.SAS_BASE);
 		if(basedir == null) {
 			String userdir = System.getProperty("user.dir");
 			basedir = userdir;
@@ -46,13 +46,13 @@ public class Bootstrap {
 		
 		File dir = new File(basedir);
 		if(!dir.isDirectory())
-			throw new RuntimeException(Globals.SYNC_BASE+" is not a valid directory");
+			throw new RuntimeException(dir.getAbsolutePath()+" is not a valid directory");
 		
-		System.setProperty(Globals.SYNC_BASE, dir.getAbsolutePath());
+		System.setProperty(Globals.SAS_BASE, dir.getAbsolutePath());
 	}
 
 	public void start() throws Exception {
-		String basedir = System.getProperty(Globals.SYNC_BASE);
+		String basedir = System.getProperty(Globals.SAS_BASE);
 		
 		System.out.println("Starting Sync App Server");
 		

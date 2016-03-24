@@ -44,9 +44,7 @@ import freemarker.template.TemplateExceptionHandler;
 import freemarker.template.Version;
 
 /**
- * 
  * @author dfroz
- *
  */
 public class RenderResponder implements Responder {
 	private static final Logger log = LoggerFactory.getLogger(RenderResponder.class);

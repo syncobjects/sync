@@ -30,6 +30,9 @@ import com.syncobjects.as.api.RequestContext;
 import com.syncobjects.as.api.Result;
 import com.syncobjects.as.api.SessionContext;
 
+/**
+ * @author dfroz
+ */
 public class OControllerClassVisitor extends ClassVisitor {
 	private OControllerReflector reflector;
 	private boolean createdStaticMethod = false;

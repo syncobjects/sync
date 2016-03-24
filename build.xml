@@ -1,4 +1,4 @@
-<project name="sync-as" basedir="." default="dist">
+<project name="sas" basedir="." default="dist">
 	<property file="build.properties"/>
 	
 	<path id="project.classpath">
@@ -79,7 +79,7 @@
 				<attribute name="Main-Class" value="com.syncobjects.as.startup.Bootstrap"/>
 			</manifest>
 		</jar>
-		<tar destfile="${basedir}/sync-as-${version}.tar.gz" compression="gzip" longfile="gnu">
+		<tar destfile="${basedir}/sas-${version}.tar.gz" compression="gzip" longfile="gnu">
 			<tarfileset dir="${basedir}">
 				<include name="applications/hello/**"/>
 				<include name="bin/startup"/>

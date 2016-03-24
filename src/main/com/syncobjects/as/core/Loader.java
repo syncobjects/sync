@@ -65,20 +65,20 @@ public class Loader {
 		Class<?> clazz = classLoader.loadClass(name);
 		for(Class<?> c: clazz.getInterfaces()) {
 			if(c.equals(OController.class)) {
-				if(log.isTraceEnabled())
-					log.trace("loading @Controller "+clazz.getName());
 				controllers.add(clazz);
+				if(log.isTraceEnabled())
+					log.trace("@Controller {} loaded", clazz.getName());
 				return;
 			}
 			if(c.equals(OInterceptor.class)) {
 				if(log.isTraceEnabled())
-					log.trace("loading @Interceptor "+clazz.getName());
+					log.trace("@Interceptor {} loaded", clazz.getName());
 				interceptors.add(clazz);
 				return;
 			}
 			if(c.equals(OInitializer.class)) {
 				if(log.isTraceEnabled())
-					log.trace("loading @Initializer "+clazz.getName());
+					log.trace("@Initializer {} loaded",clazz.getName());
 				initializers.add(clazz);
 				return;
 			}
