@@ -16,6 +16,8 @@
 package com.syncobjects.as.core;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,11 @@ import org.slf4j.LoggerFactory;
 public class ApplicationManager {
 	private static Logger log = LoggerFactory.getLogger(ApplicationManager.class);
 	private static Application applications[];
+	private static Map<String, Application> domains;
+	
+	static {
+		domains = new HashMap<String, Application>();
+	}
 	
 	public static void register(Application application) {
 		ArrayList<Application> apps = new ArrayList<Application>();
@@ -37,6 +44,11 @@ public class ApplicationManager {
 			}
 		}
 		apps.add(application);
+		
+		for(String domain: application.getDomains()) {
+			domains.put(domain, application);
+		}
+		
 		applications = apps.toArray(new Application[0]);
 		if(log.isTraceEnabled())
 			log.trace("{} registered", application);
@@ -69,12 +81,6 @@ public class ApplicationManager {
 		// For multiples applications under the server, then identify the correct application considering
 		// the domain name
 		//
-		for(Application app: applications) {
-			for(String d: app.getDomains()) {
-				if(domain.startsWith(d.toLowerCase()))
-					return app;
-			}
-		}
-		return null;
+		return domains.get(domain);
 	}
 }
