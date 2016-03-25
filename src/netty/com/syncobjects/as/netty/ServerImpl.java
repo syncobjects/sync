@@ -54,6 +54,11 @@ public class ServerImpl implements Server {
 	private static final String name = "Netty";
 	
 	@Override
+	public ServerConfig config() {
+		return config;
+	}
+	
+	@Override
 	public void init() {
 		String basedir = System.getProperty(Globals.SAS_BASE);
 		
@@ -162,7 +167,7 @@ public class ServerImpl implements Server {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup);
             b.channel(NioServerSocketChannel.class);
-            b.childHandler(new ServerInitializer());
+            b.childHandler(new ServerInitializer(this));
             try {
             	ChannelFuture chf = null;
             	if(config.getListenAddress() != null)

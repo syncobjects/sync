@@ -25,12 +25,14 @@ import java.io.InputStream;
 public class ServerConfig extends Config {
 	private static final long serialVersionUID = 3938816221618284519L;
 	private String listenAddress;
-	private int listenPort;
+	private Integer listenPort;
+	private Boolean trustedProxyMode;
 	
 	public void load(InputStream is) throws IOException {
 		super.load(is);
 		listenAddress = getString("listen.address");
 		listenPort = getInt("listen.port", 8080);
+		trustedProxyMode = getBoolean("trusted.proxy.mode", false);
 	}
 
 	public String getListenAddress() {
@@ -41,11 +43,19 @@ public class ServerConfig extends Config {
 		this.listenAddress = listenAddress;
 	}
 
-	public int getListenPort() {
+	public Integer getListenPort() {
 		return listenPort;
 	}
 
-	public void setListenPort(int listenPort) {
+	public void setListenPort(Integer listenPort) {
 		this.listenPort = listenPort;
+	}
+
+	public Boolean getTrustedProxyMode() {
+		return trustedProxyMode;
+	}
+
+	public void setTrustedProxyMode(Boolean trustedProxyMode) {
+		this.trustedProxyMode = trustedProxyMode;
 	}
 }

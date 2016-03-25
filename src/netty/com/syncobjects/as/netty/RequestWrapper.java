@@ -144,8 +144,9 @@ public class RequestWrapper implements Request {
 	@Override
 	public void recycle() {
 		cookieContext.clear();
-		requestContext.clear();
+		files.clear();
 		headers.clear();
 		parameters.clear();
+		requestContext.clear();
 	}
 }

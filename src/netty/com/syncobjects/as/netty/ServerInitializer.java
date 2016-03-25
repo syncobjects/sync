@@ -15,6 +15,8 @@
  */
 package com.syncobjects.as.netty;
 
+import com.syncobjects.as.core.Server;
+
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
@@ -27,12 +29,17 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
  *
  */
 public class ServerInitializer extends ChannelInitializer<SocketChannel> {
+	private Server server;
+	
+	public ServerInitializer(Server server) {
+		this.server = server;
+	}
 
     @Override
     public void initChannel(SocketChannel ch) {
         ChannelPipeline pipeline = ch.pipeline();
         pipeline.addLast(new HttpRequestDecoder());
         pipeline.addLast(new HttpResponseEncoder());
-        pipeline.addLast(new RequestHandler());
+        pipeline.addLast(new RequestHandler(server));
     }
 }

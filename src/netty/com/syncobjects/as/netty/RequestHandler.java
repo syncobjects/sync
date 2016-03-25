@@ -59,6 +59,7 @@ import com.syncobjects.as.core.InterceptorBean;
 import com.syncobjects.as.core.InterceptorBeanException;
 import com.syncobjects.as.core.InterceptorFactory;
 import com.syncobjects.as.core.Response;
+import com.syncobjects.as.core.Server;
 import com.syncobjects.as.core.Session;
 import com.syncobjects.as.core.SessionFactory;
 import com.syncobjects.as.responder.Responder;
@@ -111,11 +112,18 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
 	private static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
 	private static final int HTTP_CACHE_SECONDS = 60;
+	private Server server;
+	private Application application;
+	private String domain;
 	private HttpRequest request;
 	private final RequestWrapper requestWrapper = new RequestWrapper();
 	private final Response response = new Response();
 	private HttpPostRequestDecoder decoder;
-	private static final HttpDataFactory factory = new DefaultHttpDataFactory(64 * 1024);
+	private static final HttpDataFactory factory = new DefaultHttpDataFactory(8 * 1024);
+	
+	public RequestHandler(Server server) {
+		this.server = server;
+	}
 
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
@@ -131,27 +139,40 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg)
 			throws Exception {
-		// if(msg instanceof LastHttpContent) {
-		// just ignore... request response are long gone...
-		//	return;
-		// }
-
 		if(msg instanceof HttpRequest) {
 			this.request = (HttpRequest)msg;
-
-			boolean isGET = this.request.method().equals(HttpMethod.GET);
-			boolean xsc = this.request.headers().getAsString("X-Sync-Client") != null ? true: false;
-			if(log.isTraceEnabled())
-				log.trace("Is X-Sync-Client present? {}", xsc);
-
+			
+			//
+			// Verify application's domain. This is a common code to both static and dynamic request handlers... 
+			// This may save CPU cycles if there is no domain responsible for the request.
+			//
+			domain = getDomain(request);
+			application = ApplicationManager.getApplication(domain);
+			if(application == null) {
+				if(log.isTraceEnabled())
+					log.trace("no application found responsible for domain: {}", domain);
+				sendFileNotFound(ctx);
+			}
 
 			// check if GET or POST ... 
 			// if GET it is possible that we may handle a static file request. 
-			// In this case we won't need to create Request Response wrappers
-			// this will only happen if there is no webserver front-ending the solution... 
-			// in this case we shall always treat the requests with the dynamic module.
+			// In this case we don't need to create Request/Response wrappers objects...
+			boolean isGET = this.request.method().equals(HttpMethod.GET);
 			if(isGET) {
+				boolean xsc = false;
+				if(server.config().getTrustedProxyMode()) {
+					xsc = this.request.headers().getAsString("X-SAS-Client") != null ? true: false;
+				}
+				if(log.isTraceEnabled())
+					log.trace("Proxied request? {}", xsc);
 				if(xsc) {
+					// this point forward we translate the request into sas.Request...
+					requestWrapper.setRequest(this.request);
+					requestWrapper.getRequestContext().put(RequestContext.DOMAIN, domain);
+					requestWrapper.getRequestContext().put(RequestContext.METHOD, this.request.method().asciiName());
+					requestWrapper.getRequestContext().put(RequestContext.URL, this.request.uri());
+					requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, this.request.headers().getAsString("X-SAS-Client"));
+					
 					if(handleRequestDynamically(ctx)) {
 						// no need to continue as the action has been taken by the application
 						return;
@@ -162,11 +183,21 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 						// no need to continue as the static file has been served
 						return;
 					}
+					
+					requestWrapper.setRequest(this.request);
+					requestWrapper.getRequestContext().put(RequestContext.DOMAIN, domain);
+					requestWrapper.getRequestContext().put(RequestContext.METHOD, this.request.method().asciiName());
+					requestWrapper.getRequestContext().put(RequestContext.URL, this.request.uri());
+					// We already verified the X-SAS-Client header and it is not available...
+					InetSocketAddress isa = (InetSocketAddress)ctx.channel().remoteAddress();
+					requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, isa.getHostString()+":"+isa.getPort());
+					
 					if(handleRequestDynamically(ctx)) {
 						// no need to continue as the page has been delivered
 						return;
 					}
 				}
+				
 				sendFileNotFound(ctx);
 				return;
 			}
@@ -207,7 +238,28 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				// example of reading only if at the end
 				if (chunk instanceof LastHttpContent) {
 					if(log.isTraceEnabled())
-						log.trace("last chunk identified; handling request");
+						log.trace("last http request chunk identified; handling request...");
+					
+					// this point forward we translate the request into sas.Request...
+					requestWrapper.setRequest(this.request);
+					requestWrapper.getRequestContext().put(RequestContext.DOMAIN, domain);
+					requestWrapper.getRequestContext().put(RequestContext.METHOD, this.request.method().asciiName());
+					requestWrapper.getRequestContext().put(RequestContext.URL, this.request.uri());
+					
+					boolean xsc = false;
+					if(server.config().getTrustedProxyMode()) {
+						xsc = this.request.headers().getAsString("X-SAS-Client") != null ? true: false;
+					}
+					if(log.isTraceEnabled())
+						log.trace("Proxied request? {}", xsc);
+					if(xsc) {
+						requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS,
+								this.request.headers().getAsString("X-SAS-Client"));
+					}
+					else {
+						InetSocketAddress isa = (InetSocketAddress)ctx.channel().remoteAddress();
+						requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, isa.getHostString()+":"+isa.getPort());
+					}
 					if(handleRequestDynamically(ctx)) {
 						// no need to continue as the action has been taken by the application
 						return;
@@ -313,19 +365,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private boolean handleRequestStatically(ChannelHandlerContext ctx) throws Exception {
 		if(log.isTraceEnabled())
 			log.trace("handling request statically");
-
-		String domain = getDomain(request);
-
-		//
-		// verify application
-		//
-		Application application = ApplicationManager.getApplication(domain);
-		if(application == null) {
-			if(log.isTraceEnabled())
-				log.trace("no application found responsible for domain: {}", domain);
-			sendFileNotFound(ctx);
-			return true;
-		}
 		
 		if(log.isTraceEnabled()) {
 			log.trace("handling request to: {}:{}", application, request.uri());
@@ -340,7 +379,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		}
 
 		File file = new File(application.getConfig().getPublicDirectory(), path);
-		
 		response.setApplication(application);
 		response.setFile(file);
 		
@@ -351,33 +389,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		if(log.isTraceEnabled())
 			log.trace("handling request dynamically");
 
-		String domain = getDomain(request);
-		// this point forward we translate the request to sync.Request...
-		requestWrapper.setRequest(this.request);
-		//
-		// setting request context
-		//
-		requestWrapper.getRequestContext().put(RequestContext.DOMAIN, domain);
-		requestWrapper.getRequestContext().put(RequestContext.URL, this.request.uri());
-		if(this.request.headers() != null && this.request.headers().getAsString("X-Sync-Client") != null) {
-			requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, 
-					this.request.headers().getAsString("X-Sync-Client"));
-		}
-		else {			
-			InetSocketAddress isa = (InetSocketAddress)ctx.channel().remoteAddress();
-			requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, isa.getHostString()+":"+isa.getPort());
-		}
-		requestWrapper.getRequestContext().put(RequestContext.METHOD, this.request.method().asciiName());
-
 		try {
-			Application application = ApplicationManager.getApplication(domain);
-			if(application == null) {
-				if(log.isTraceEnabled())
-					log.trace("no application found responsible for domain: {}", domain);
-				sendFileNotFound(ctx);
-				return true;
-			}
-
 			Thread.currentThread().setContextClassLoader(application.getClassLoader());
 
 			final ControllerBean controller = new ControllerBean();
@@ -798,12 +810,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		if(log.isTraceEnabled())
 			log.trace("reset()");
 		request = null;
-		
-		if(requestWrapper != null) {
-			if(log.isTraceEnabled())
-				log.trace("reset(): RequestWrapper.recycle()");
-			requestWrapper.recycle();
-		}
 		
 		// destroy the decoder to release all resources
 		if(decoder != null) {

@@ -21,5 +21,6 @@ package com.syncobjects.as.core;
  *
  */
 public interface Server {
+	public ServerConfig config();
 	public void init();
 }
