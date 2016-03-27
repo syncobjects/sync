@@ -25,7 +25,6 @@ import com.syncobjects.as.api.Result;
 import com.syncobjects.as.core.Response;
 import com.syncobjects.as.core.ResponseBean;
 import com.syncobjects.as.core.Session;
-import com.syncobjects.as.util.ServerCookie;
 
 /**
  * 
@@ -89,9 +88,7 @@ public class RedirectResponder implements Responder {
 		if(session.isRecent()) {
 			if(log.isDebugEnabled())
 				log.debug("setting session cookie header; response session: {}", session);
-			ServerCookie cookie = new ServerCookie(session.getIdKey(), session.getId(), "/");
-			// cookie.setExpiry(604800);
-			// cookie.setVersion(1);
+			Cookie cookie = new Cookie(session.getIdKey(), session.getId(), null, "/", 604800L, null, null);
 			response.getHeaders().put("Set-Cookie", cookie.toString());
 		}
 		

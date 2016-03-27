@@ -27,7 +27,6 @@ import com.syncobjects.as.api.Result;
 import com.syncobjects.as.core.Response;
 import com.syncobjects.as.core.ResponseBean;
 import com.syncobjects.as.core.Session;
-import com.syncobjects.as.util.ServerCookie;
 
 public class FileResponder implements Responder {
 	private static final Logger log = LoggerFactory.getLogger(FileResponder.class);
@@ -75,7 +74,7 @@ public class FileResponder implements Responder {
 			if(log.isDebugEnabled())
 				log.debug("setting session cookie header; response session: {}", session);
 			session.setRecent(false);
-			ServerCookie cookie = new ServerCookie(session.getIdKey(), session.getId(), "/");
+			Cookie cookie = new Cookie(session.getIdKey(), session.getId(), null, "/", 604800L, null, null);
 			response.getHeaders().put(Result.SET_COOKIE_HEADER, cookie.toString());
 		}		
 		

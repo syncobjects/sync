@@ -88,23 +88,21 @@ public class Cookie {
 		StringBuilder buf = new StringBuilder();
 		buf.append(name).append('=').append(value);
 	    if (domain != null) {
-	        buf.append("; domain=")
+	        buf.append("; Domain=")
 	           .append(domain);
 	    }
 	    if (path != null) {
-	        buf.append("; path=")
+	        buf.append("; Path=")
 	           .append(path);
 	    }
 	    if (maxAge != null && maxAge >= 0) {
-	        buf.append("; maxAge=")
-	           .append(maxAge)
-	           .append('s');
+	        buf.append("; Max-Age=").append(maxAge);
 	    }
 	    if (secure != null && secure) {
-	        buf.append("; secure");
+	        buf.append("; Secure");
 	    }
 	    if (httpOnly != null && httpOnly) {
-	        buf.append("; HTTPOnly");
+	        buf.append("; HttpOnly");
 	    }
 	    return buf.toString();
 	}
