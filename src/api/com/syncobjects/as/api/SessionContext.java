@@ -15,7 +15,7 @@
  */
 package com.syncobjects.as.api;
 
-public class SessionContext extends Context {
+public class SessionContext extends Context<String,Object> {
 	private static final long serialVersionUID = 6299237419163497280L;
 	public static final String LOCALE = "com.syncobjects.as.api.SessionContext.LOCALE";
 }

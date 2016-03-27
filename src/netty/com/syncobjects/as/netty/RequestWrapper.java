@@ -15,7 +15,6 @@
  */
 package com.syncobjects.as.netty;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,36 +87,35 @@ public class RequestWrapper implements Request {
 	public void setRequest(HttpRequest request) {
 		this.request = request;
 		this.session = null;
-		
+
+		//
 		// setting headers...
 		//
 		for (Entry<String, String> entry : request.headers()) {
-			String name = entry.getKey().toString();
+			String name = entry.getKey();
+			String value = entry.getValue();
+			
+			if(log.isTraceEnabled())
+				log.trace("header: {} -> {}", name, value);
+			
+			if(name.toLowerCase().equals(HttpHeaderNames.COOKIE.toString())) {
+				ServerCookieDecoder decoder = ServerCookieDecoder.STRICT;
+	            Set<Cookie> cookies = decoder.decode(value);
+	            for(Cookie cookie: cookies) {
+	            	cookieContext.put(cookie.name(), cookie.value());
+	            }
+				continue;
+			}
+			
 			List<String> values = headers.get(name);
 			if(values == null) {
 				values = new LinkedList<String>();
 			}
-			values.add(entry.getValue().toString());
+			values.add(entry.getValue());
 			headers.put(name, values);
         }
-		
-		// setting cookies...
+        
 		//
-		Set<Cookie> cookies;
-        String value = this.request.headers().getAsString(HttpHeaderNames.COOKIE);
-        if (value == null) {
-            cookies = Collections.emptySet();
-        } else {
-        	ServerCookieDecoder decoder = ServerCookieDecoder.STRICT;
-            cookies = decoder.decode(value);
-        }
-        if(log.isTraceEnabled())
-        	log.trace("cookies: {}", cookies);
-        
-        for (Cookie cookie : cookies) {
-            cookieContext.put(cookie.name(), cookie.value());
-        }
-        
         // parameters from the URL
         //
         QueryStringDecoder decoderQuery = new QueryStringDecoder(request.uri());

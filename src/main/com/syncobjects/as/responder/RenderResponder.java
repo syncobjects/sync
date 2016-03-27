@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.syncobjects.as.api.ApplicationContext;
+import com.syncobjects.as.api.Cookie;
 import com.syncobjects.as.api.RenderResult;
 import com.syncobjects.as.api.Result;
 import com.syncobjects.as.api.SessionContext;
@@ -33,7 +34,6 @@ import com.syncobjects.as.core.Response;
 import com.syncobjects.as.core.ResponseBean;
 import com.syncobjects.as.core.Session;
 import com.syncobjects.as.util.ExceptionUtils;
-import com.syncobjects.as.util.ServerCookie;
 
 import freemarker.cache.MruCacheStorage;
 import freemarker.template.Configuration;
@@ -180,6 +180,8 @@ public class RenderResponder implements Responder {
 			return;
 		}
 		
+		// Content-type
+		
 		String contentType = "text/html; charset="+this.charset;
 		if(rr.getHeaders().containsKey(Result.CONTENT_TYPE_HEADER)) {
 			contentType = rr.getHeaders().get(Result.CONTENT_TYPE_HEADER);
@@ -189,14 +191,27 @@ public class RenderResponder implements Responder {
 		}
 		response.getHeaders().put(Result.CONTENT_TYPE_HEADER, contentType);
 		
+		//
+		// Set cookies
+		//
+		for(Cookie cookie: rr.getCookies()) {
+			response.getHeaders().put(Result.SET_COOKIE_HEADER, cookie.toString());
+		}
+		
+		//
+		// Session cookie
+		//
 		Session session = response.getSession();
 		if(session.isRecent()) {
 			if(log.isDebugEnabled())
 				log.debug("setting session cookie header; response session: {}", session);
 			session.setRecent(false);
-			ServerCookie cookie = new ServerCookie(session.getIdKey(), session.getId(), null, "/", 604800);
+			Cookie cookie = new Cookie(session.getIdKey(), session.getId(), null, "/", 604800L, null, null);
 			response.getHeaders().put(Result.SET_COOKIE_HEADER, cookie.toString());
 		}
+		//
+		// more headers
+		//
 		for(String key: rr.getHeaders().keySet()) {
 			response.getHeaders().put(key, rr.getHeaders().get(key));
 		}

@@ -72,7 +72,7 @@ public class SessionFactoryImpl implements SessionFactory {
 	 * Locates the existing session related to the client. In case that none is found, generate new one.
 	 */
 	public Session find(Request request) {
-		String id = (String)request.getCookieContext().get(config.getSessionIdKey());
+		String id = request.getCookieContext().get(config.getSessionIdKey());
 		if(id == null) {
 			// try request parameter
 			List<String> values = request.getParameters().get(config.getSessionIdKey());

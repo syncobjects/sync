@@ -15,7 +15,7 @@
  */
 package com.syncobjects.as.api;
 
-public class RequestContext extends Context {
+public class RequestContext extends Context<String,Object> {
 	private static final long serialVersionUID = 4129335630680225434L;
 	public static final String DOMAIN = "com.syncobjects.as.api.RequestContext.DOMAIN";
 	public static final String METHOD = "com.syncobjects.as.api.RequestContext.METHOD";

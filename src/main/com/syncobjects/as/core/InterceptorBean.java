@@ -63,12 +63,11 @@ public class InterceptorBean implements ResponseBean {
 		if(response == null)
 			throw new IllegalArgumentException("invalid response argument");
 
-		Session session = request.getSession();
-
 		errorContext = request.getSession().getErrorContext();
+		cookieContext = request.getCookieContext();
 		requestContext = request.getRequestContext();
 		sessionContext = request.getSession().getSessionContext();
-		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), session.getSessionContext());
+		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), sessionContext);
 
 		interceptor._asApplicationContext(application.getContext());
 		interceptor._asCookieContext(cookieContext);
@@ -161,7 +160,7 @@ public class InterceptorBean implements ResponseBean {
 		catch(Exception e) { throw new InterceptorBeanException(e, this); }
 
 		if(log.isTraceEnabled())
-			log.trace("@Controller {}.after() resulted in {}", this, result);
+			log.trace("@Interceptor {}.after() resulted in {}", this, result);
 
 		return result;
 	}
@@ -172,12 +171,11 @@ public class InterceptorBean implements ResponseBean {
 		if(response == null)
 			throw new IllegalArgumentException("invalid response argument");
 
-		Session session = request.getSession();
-
 		errorContext = request.getSession().getErrorContext();
+		cookieContext = request.getCookieContext();
 		requestContext = request.getRequestContext();
 		sessionContext = request.getSession().getSessionContext();
-		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), session.getSessionContext());
+		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), sessionContext);
 
 		interceptor._asApplicationContext(application.getContext());
 		interceptor._asCookieContext(cookieContext);
@@ -270,7 +268,7 @@ public class InterceptorBean implements ResponseBean {
 		catch(Exception e) { throw new InterceptorBeanException(e, this); }
 
 		if(log.isTraceEnabled())
-			log.trace("@Controller {}.before() resulted in {}", this, result);
+			log.trace("@Interceptor {}.before() resulted in {}", this, result);
 
 		return result;
 	}

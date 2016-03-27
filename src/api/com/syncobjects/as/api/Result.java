@@ -15,6 +15,8 @@
  */
 package com.syncobjects.as.api;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -25,6 +27,16 @@ public abstract class Result {
 	public static final String SET_COOKIE_HEADER = "Set-Cookie";
 	private final Map<String,String> headers = new ConcurrentHashMap<String,String>();
 	private final Map<String,String> parameters = new ConcurrentHashMap<String,String>();
+	private final List<Cookie> cookies = new LinkedList<Cookie>();
+	
+	public Result setCookie(Cookie cookie) {
+		cookies.add(cookie);
+		return this;
+	}
+	
+	public List<Cookie> getCookies() {
+		return cookies;
+	}
 	
 	public Result setHeader(String header, String value) {
 		headers.put(header, value);

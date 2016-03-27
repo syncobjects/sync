@@ -30,7 +30,7 @@ package com.syncobjects.as.api;
  * 
  * @author dfroz
  */
-public class ApplicationContext extends Context {
+public class ApplicationContext extends Context<String,Object> {
 	private static final long serialVersionUID = 78591761595270365L;
 	public static final String HOME = "com.syncobjects.as.api.ApplicationContext.HOME";
 	public static final String LOCALE = "com.syncobjects.as.api.ApplicationContext.LOCALE";

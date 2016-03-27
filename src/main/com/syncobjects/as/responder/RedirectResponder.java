@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.syncobjects.as.api.ApplicationContext;
+import com.syncobjects.as.api.Cookie;
 import com.syncobjects.as.api.RedirectResult;
 import com.syncobjects.as.api.Result;
 import com.syncobjects.as.core.Response;
@@ -76,6 +77,13 @@ public class RedirectResponder implements Responder {
 			response.getHeaders().put(key, rr.getHeaders().get(key));
 		}
 		response.getHeaders().put("Content-Length", "0");
+		
+		//
+		// Set cookies
+		//
+		for(Cookie cookie: rr.getCookies()) {
+			response.getHeaders().put(Result.SET_COOKIE_HEADER, cookie.toString());
+		}
 		
 		Session session = response.getSession();
 		if(session.isRecent()) {

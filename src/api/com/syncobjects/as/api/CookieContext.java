@@ -15,7 +15,7 @@
  */
 package com.syncobjects.as.api;
 
-public class CookieContext extends Context {
+public class CookieContext extends Context<String,String> {
 	private static final long serialVersionUID = 3167431916933243255L;
 	public static final String SESSID = "SSID";
 }

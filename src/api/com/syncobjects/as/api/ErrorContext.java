@@ -15,8 +15,6 @@
  */
 package com.syncobjects.as.api;
 
-import java.util.concurrent.ConcurrentHashMap;
-
-public class ErrorContext extends ConcurrentHashMap<String,String> {
+public class ErrorContext extends Context<String,String> {
 	private static final long serialVersionUID = 92320367354664164L;
 }

@@ -22,6 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  * @author dfroz
  */
-public class Context extends ConcurrentHashMap<String,Object> {
+public class Context<K,V> extends ConcurrentHashMap<K,V> {
 	private static final long serialVersionUID = -3016376002081071976L;
 }

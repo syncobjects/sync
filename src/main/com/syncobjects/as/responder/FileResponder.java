@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.syncobjects.as.api.ApplicationContext;
+import com.syncobjects.as.api.Cookie;
 import com.syncobjects.as.api.FileResult;
 import com.syncobjects.as.api.Result;
 import com.syncobjects.as.core.Response;
@@ -61,6 +62,13 @@ public class FileResponder implements Responder {
 		response.setFile(file);
 		// set content disposition header to guarantee correct filename.
 		response.getHeaders().put(Result.CONTENT_DISPOSITION, "attachment; filename=\""+file.getName()+"\"");
+		
+		//
+		// Set cookies
+		//
+		for(Cookie cookie: fr.getCookies()) {
+			response.getHeaders().put(Result.SET_COOKIE_HEADER, cookie.toString());
+		}
 		
 		Session session = response.getSession();
 		if(session.isRecent()) {

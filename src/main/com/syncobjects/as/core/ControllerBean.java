@@ -77,6 +77,7 @@ public class ControllerBean implements ResponseBean {
 		Session session = request.getSession();
 
 		errorContext = request.getSession().getErrorContext();
+		cookieContext = request.getCookieContext();
 		requestContext = request.getRequestContext();
 		sessionContext = request.getSession().getSessionContext();
 		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), session.getSessionContext());
@@ -85,11 +86,11 @@ public class ControllerBean implements ResponseBean {
 		 *  INVOKE SPECIALS
 		 */
 		controller._asApplicationContext(application.getContext());
-		controller._asCookieContext(request.getCookieContext());
-		controller._asErrorContext(session.getErrorContext());
+		controller._asCookieContext(cookieContext);
+		controller._asErrorContext(errorContext);
 		controller._asMessageContext(messageContext);
-		controller._asRequestContext(request.getRequestContext());
-		controller._asSessionContext(session.getSessionContext());
+		controller._asRequestContext(requestContext);
+		controller._asSessionContext(sessionContext);
 
 		/*
 		 *  INVOKE SETTERS
