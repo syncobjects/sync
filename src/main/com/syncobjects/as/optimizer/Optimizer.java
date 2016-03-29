@@ -18,11 +18,11 @@ package com.syncobjects.as.optimizer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -42,7 +42,7 @@ import com.syncobjects.as.util.FileUtils;
  */
 public class Optimizer {
 	private static final Logger log = LoggerFactory.getLogger(Optimizer.class);
-	private final List<File> classFiles = new ArrayList<File>();
+	private final List<ClassFile> classFiles = new LinkedList<ClassFile>();
 	private Application application;
 	
 	public Optimizer(Application application) {
@@ -62,41 +62,48 @@ public class Optimizer {
 	 * @param classFile represents the class file
 	 * @throws Exception
 	 */
-	private void doOptimize(ClassFile classFile) throws Exception {
-		Class<?> clazz = classFile.getClazz();
-		
+	private void doOptimize(ClassFile classFile) throws Exception {		
 		ClassOptimizer optimizer = new ClassOptimizer();
-		byte b[] = optimizer.optimize(clazz);
+		byte b[] = optimizer.optimize(classFile.getClazz());
 		if(b == null)
 			return;
 		
-		File file = new File(application.getConfig().getWorkDirectory(), classFile.getClassPath());
+		File file = new File(application.getConfig().getWorkDirectory(), classFile.getRelativePath());
 		FileOutputStream fos = new FileOutputStream(file);
 		fos.write(b);
 		try { fos.close(); } catch(Exception ignore) {}
 		
 		if(log.isTraceEnabled())
-			log.trace("{} created optimized version of class {}", application, clazz.getName());
+			log.trace("{} created optimized version of class {}", application, classFile.getClazz().getName());
 	}
 
-	private void scanClassesDirectory(File dir) throws IOException {
-		for(File file: dir.listFiles()) {
-			if(file.getName().equals(".") || file.getName().equals(".."))
+	private void scanClassesDirectory(File file) throws Exception {
+		for(File f: file.listFiles()) {
+			if(f.getName().equals(".") || f.getName().equals(".."))
 				continue;
-			if(file.isDirectory()) {
-				scanClassesDirectory(file);
+			if(f.isDirectory()) {
+				scanClassesDirectory(f);
 				continue;
+			}
+			
+			String relativePath = FileUtils.getRelativePath(f, application.getConfig().getClassesDirectory());
+			if(f.getName().endsWith(".class")) {
+				String clazzName = relativePath;
+				int p = clazzName.indexOf(".class");
+				if(p != -1) {
+					clazzName = clazzName.substring(0, p);
+				}
+				String pattern = Pattern.quote(File.separator);
+				clazzName = clazzName.replaceAll(pattern, ".");
+				
+				ClassLoader cl = Thread.currentThread().getContextClassLoader();
+				Class<?> clazz = cl.loadClass(clazzName);
+				classFiles.add(new ClassFile(clazz, clazzName, relativePath));
 			}
 			
 			// copy file to the work directory
-			File workFile = new File(application.getConfig().getWorkDirectory(),
-					FileUtils.getRelativePath(file, application.getConfig().getClassesDirectory()));
-			FileUtils.copyTo(file, workFile);
-			
-			if(file.getName().endsWith(".class")) {
-				// class files will be enhanced and automatically copied over the work directory.
-				classFiles.add(file);
-			}
+			File workFile = new File(application.getConfig().getWorkDirectory(), relativePath);
+			FileUtils.copyTo(f, workFile);
 		}
 	}
 
@@ -108,8 +115,12 @@ public class Optimizer {
 	 * @throws Exception
 	 */
 	public void optimize() throws Exception {
+		
+		// recreating the WorkDirectory
+		FileUtils.delete(application.getConfig().getWorkDirectory());
+		
 		//
-		// first step is to create the ClassLoader for the ClassesDirectory
+		// first step is to create the ClassLoader from the WorkDirectory
 		//
 		ArrayList<URL> urls = new ArrayList<URL>();
 		try {
@@ -133,33 +144,25 @@ public class Optimizer {
 			}
 		}
 		
-		if(log.isTraceEnabled())
-			log.trace("{} utilizing the following to paths to enhance classes: [{}]", application, urls);
-		
-		ApplicationClassLoader classLoader = new ApplicationClassLoader(urls);
-		
-		// ClassLoader classLoader = application.getClassLoader();
+		ApplicationClassLoader classLoader = new ApplicationClassLoader(urls, Thread.currentThread().getContextClassLoader());
 		Thread.currentThread().setContextClassLoader(classLoader);
-				
-		// recreating the files but WorkDirectory but only those not recreated by enhanced.
-		scanClassesDirectory(application.getConfig().getClassesDirectory());
 		
 		if(log.isTraceEnabled())
-			log.trace("class identified [{}]", classFiles);
+			log.trace("{} optimizing classes with ClassLoader: [{}]", application, urls);
 		
-		for(File file: classFiles) {
-			ClassFile classFile = new ClassFile(classLoader, file, application.getConfig().getClassesDirectory());
+		// scan classes from the classes/
+		scanClassesDirectory(application.getConfig().getClassesDirectory());
+		for(ClassFile file: classFiles) {
 			try {
-				doOptimize(classFile);
+				doOptimize(file);
 			}
 			catch(ClassNotFoundException e) {
-				log.error("failed to process class file: "+file.getAbsolutePath(), e);
+				log.error("failed to process class file: {} ", file, e);
 				throw new InvocationTargetException(e);
 			}
 		}
 		
 		Thread.currentThread().setContextClassLoader(classLoader.getParent());
-		
 		classLoader = null;
 		
 		// this shall destroy the ClassesDirectory based ClassLoader
@@ -175,56 +178,36 @@ public class Optimizer {
 
 class ClassFile {
 	private Class<?> clazz;
-	private ClassLoader classLoader;
-	private String classPath;
-	private String className;
-
-	public ClassFile(ClassLoader classLoader, File file, File basedir) {
-		this.classLoader = classLoader;
-
-		//
-		// generating class path
-		//
-		this.classPath = file.getAbsolutePath();
-		int p = classPath.indexOf(basedir.getAbsolutePath());
-		if(p != -1) {
-			classPath = classPath.substring(p + basedir.getAbsolutePath().length() + File.separator.length());
-		}
-		// 
-		// generating class name
-		//
-		className = classPath;
-		p = className.indexOf(".class");
-		if(p != -1)
-			className = className.substring(0, p);
-		String pattern = Pattern.quote(File.separator);
-		className = className.replaceAll(pattern, ".");
-		try {
-			this.clazz = classLoader.loadClass(className);
-		}
-		catch(ClassNotFoundException e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
+	private String clazzName;
+	private String relativePath;
+	
+	public ClassFile(Class<?> clazz, String clazzName, String relativePath) {
+		this.clazz = clazz;
+		this.clazzName = clazzName;
+		this.relativePath = relativePath;
 	}
 
 	public Class<?> getClazz() {
 		return clazz;
 	}
 
-	public ClassLoader getClassLoader() {
-		return classLoader;
+	public void setClazz(Class<?> clazz) {
+		this.clazz = clazz;
 	}
 
-	public String getClassName() {
-		return className;
+	public String getClazzName() {
+		return clazzName;
 	}
 
-	public String getClassPath() {
-		return classPath;
+	public void setClazzName(String clazzName) {
+		this.clazzName = clazzName;
 	}
-	
-	public String toString() {
-		return classPath;
+
+	public String getRelativePath() {
+		return relativePath;
+	}
+
+	public void setRelativePath(String relativePath) {
+		this.relativePath = relativePath;
 	}
 }
-
