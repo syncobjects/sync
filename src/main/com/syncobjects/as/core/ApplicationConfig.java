@@ -29,6 +29,7 @@ public class ApplicationConfig extends Config {
 	public static final String DOMAINS_KEY = "application.domains";
 	public static final String LOCALE_KEY = "application.locale";
 	public static final String SESSION_EXPIRE_KEY = "application.session.expire";
+	public static final String SESSION_FACTORY_KEY = "application.session.factory";
 	public static final String SESSION_IDKEY_KEY = "application.session.key";
 	public static final String SESSION_POOL_SIZE_KEY = "application.session.poolsize";
 	public static final String TEMPLATE_CACHE = "application.template.cache";
@@ -41,6 +42,7 @@ public class ApplicationConfig extends Config {
 	private File privateDirectory;
 	private File publicDirectory;
 	private long sessionExpire;
+	private String sessionFactory;
 	private String sessionIdKey;
 	private int sessionPoolSize;
 	private Boolean templateCache;
@@ -102,6 +104,14 @@ public class ApplicationConfig extends Config {
 
 	public void setSessionExpire(long sessionExpire) {
 		this.sessionExpire = sessionExpire;
+	}
+
+	public String getSessionFactory() {
+		return sessionFactory;
+	}
+
+	public void setSessionFactory(String sessionFactory) {
+		this.sessionFactory = sessionFactory;
 	}
 
 	public String getSessionIdKey() {

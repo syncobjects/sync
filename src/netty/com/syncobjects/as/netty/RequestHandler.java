@@ -190,7 +190,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 					requestWrapper.getRequestContext().put(RequestContext.URL, this.request.uri());
 					// We already verified the X-SAS-Client header and it is not available...
 					InetSocketAddress isa = (InetSocketAddress)ctx.channel().remoteAddress();
-					requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, isa.getHostString()+":"+isa.getPort());
+					requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, isa.getHostString());
 					
 					if(handleRequestDynamically(ctx)) {
 						// no need to continue as the page has been delivered
@@ -258,7 +258,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 					}
 					else {
 						InetSocketAddress isa = (InetSocketAddress)ctx.channel().remoteAddress();
-						requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, isa.getHostString()+":"+isa.getPort());
+						requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, isa.getHostString());
 					}
 					if(handleRequestDynamically(ctx)) {
 						// no need to continue as the action has been taken by the application
@@ -723,7 +723,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	}
 
 	private void sendException(ChannelHandlerContext ctx, Exception e) {
-
 		if(log.isTraceEnabled())
 			log.trace("delivering exception message to the client");
 

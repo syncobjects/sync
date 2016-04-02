@@ -48,6 +48,10 @@ public class Session implements Serializable {
 	 */
 	private boolean recent;
 	private SessionContext sessionContext = new SessionContext();
+	/**
+	 * security measurement for anti-spoofing
+	 */
+	private String remoteAddress;
 	
 	// application.properties
 	// session.expirationtime = 10
@@ -60,6 +64,7 @@ public class Session implements Serializable {
 		this.id = id;
 		this.idKey = idKey;
 		this.recent = true;
+		this.remoteAddress = null;
 	}
 	public long getAccessTime() {
 		return accessTime;
@@ -96,6 +101,12 @@ public class Session implements Serializable {
 	}
 	public void setRecent(boolean recent) {
 		this.recent = recent;
+	}
+	public String getRemoteAddress() {
+		return remoteAddress;
+	}
+	public void setRemoteAddress(String remoteAddress) {
+		this.remoteAddress = remoteAddress;
 	}
 	public SessionContext getSessionContext() {
 		return sessionContext;

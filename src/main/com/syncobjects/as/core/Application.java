@@ -159,7 +159,11 @@ public class Application {
 		locale = StringUtils.toLocale(localeString);
 		config.setLocale(locale);
 		
+		//
 		// Session configuration
+		//
+		String sessionFactory = config.getString(ApplicationConfig.SESSION_FACTORY_KEY, "default");
+		config.setSessionFactory(sessionFactory);
 		Long sessionExpire = config.getLong(ApplicationConfig.SESSION_EXPIRE_KEY, 300) * 1000;
 		config.setSessionExpire(sessionExpire);
 		String sessionIdKey = config.getString(ApplicationConfig.SESSION_IDKEY_KEY, "SSID");
@@ -198,8 +202,23 @@ public class Application {
 		responderFactory = new ResponderFactory();
 		responderFactory.init(this);
 		
-		sessionFactory = new SessionFactoryImpl();
+		//
+		// initiating session factory
+		//
+		if(config.getSessionFactory().equals("disabled")) {
+			sessionFactory = new SessionFactoryBogusImpl();
+		}
+		else if(config.getSessionFactory().equals("secure")) {
+			sessionFactory = new SessionFactorySecureImpl();
+		}
+		else {
+			sessionFactory = new SessionFactoryDefaultImpl();
+		}
+		if(log.isInfoEnabled())
+			log.info("{} using {} session factory", this, sessionFactory);
 		sessionFactory.start(config);
+		
+		// class loader for this application
 		
 		Thread.currentThread().setContextClassLoader(loader.getClassLoader());
 

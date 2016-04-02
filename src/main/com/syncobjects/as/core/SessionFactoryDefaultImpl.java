@@ -27,17 +27,15 @@ import org.slf4j.LoggerFactory;
  * @author dfroz
  *
  */
-public class SessionFactoryImpl implements SessionFactory {
-	private static final Logger log = LoggerFactory.getLogger(SessionFactoryImpl.class);
+public class SessionFactoryDefaultImpl implements SessionFactory {
+	private static final Logger log = LoggerFactory.getLogger(SessionFactoryDefaultImpl.class);
 	private ApplicationConfig config;
-	private StringBuffer buffer;
-	private Map<String,Session> sessions;
+	private static final StringBuffer buffer = new StringBuffer();
+	private static final Map<String,Session> sessions = new ConcurrentHashMap<String, Session>();
 	private boolean running;
 	private Thread sanitizer;
 	
-	public SessionFactoryImpl() {
-		buffer = new StringBuffer();
-		sessions = new ConcurrentHashMap<String,Session>();
+	public SessionFactoryDefaultImpl() {
 		running = true;
 		sanitizer = null;
 	}
@@ -71,7 +69,7 @@ public class SessionFactoryImpl implements SessionFactory {
 	/**
 	 * Locates the existing session related to the client. In case that none is found, generate new one.
 	 */
-	public Session find(Request request) {
+	public Session find(Request request) {		
 		String id = request.getCookieContext().get(config.getSessionIdKey());
 		if(id == null) {
 			// try request parameter
@@ -89,13 +87,13 @@ public class SessionFactoryImpl implements SessionFactory {
 			session = create();
 			session.setRecent(true);
 			if(log.isTraceEnabled())
-				log.trace("session created: "+session);
+				log.trace("session created: {}", session);
 		}
 		else {
 			// session returned from the sessions are no longer recent
 			session.setRecent(false);
 			if(log.isTraceEnabled())
-				log.trace("session identified: "+session);
+				log.trace("session identified: {}", session);
 		}
 		session.setAccessTime(System.currentTimeMillis());
 		return session;
@@ -141,6 +139,8 @@ public class SessionFactoryImpl implements SessionFactory {
 			}
 		}
 	}
+	
+	public String toString() {
+		return "default";
+	}
 }
-
-
