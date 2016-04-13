@@ -59,7 +59,7 @@
 			<manifest>
 				<attribute name="Built-By" value="${user.name}"/>
 				<attribute name="Created-By" value="SyncObjects Ltda."/>
-				<attribute name="Implementation-Title" value="SyncObjects Application Server API"/>
+				<attribute name="Implementation-Title" value="SYNC API"/>
 				<attribute name="Implementation-Version" value="${version}"/>
 				<attribute name="Implementation-Vendor" value="SyncObjects Ltda."/>
 			</manifest>
@@ -74,12 +74,12 @@
 			<fileset dir="${build.startup}"/>
 			<manifest>
 				<attribute name="Implementation-Vendor" value="SyncObjects"/>
-				<attribute name="Implementation-Title" value="Sync Application Server"/>
+				<attribute name="Implementation-Title" value="SYNC|Framework"/>
 				<attribute name="Implementation-Version" value="${version}"/>
-				<attribute name="Main-Class" value="com.syncobjects.as.startup.Bootstrap"/>
+				<attribute name="Main-Class" value="io.syncframework.startup.Bootstrap"/>
 			</manifest>
 		</jar>
-		<tar destfile="${basedir}/sas-${version}.tar.gz" compression="gzip" longfile="gnu">
+		<tar destfile="sync-${version}.tar.gz" compression="gzip" longfile="gnu">
 			<tarfileset dir="${basedir}">
 				<include name="applications/hello/**"/>
 				<include name="bin/startup"/>
