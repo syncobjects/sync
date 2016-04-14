@@ -33,6 +33,7 @@ import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -111,9 +112,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
 	private static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
 	private static final int HTTP_CACHE_SECONDS = 60;
-	private Server server;
+	private static String charset;
 	private Application application;
 	private String domain;
+	private Server server;
 	private HttpRequest request;
 	private final RequestWrapper requestWrapper = new RequestWrapper();
 	private final Response response = new Response();
@@ -122,6 +124,8 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	
 	public RequestHandler(Server server) {
 		this.server = server;
+		// default @Server charset
+		charset = Charset.defaultCharset().name();
 	}
 
 	@Override
@@ -151,6 +155,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				if(log.isTraceEnabled())
 					log.trace("no application found responsible for domain: {}", domain);
 				sendFileNotFound(ctx);
+				return;
 			}
 
 			// check if GET or POST ... 
@@ -232,6 +237,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				}
 				catch(Exception e) {
 					sendException(ctx, e);
+					return;
 				}
 
 				// example of reading only if at the end
@@ -558,7 +564,8 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		FullHttpResponse httpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, responseStatus, buf);
 
 		httpResponse.headers().set(HttpHeaderNames.SERVER, "Sync-AS");
-		httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8");
+		// default content-type header... likely to be overwritten by the Result Content-Type header...
+		httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset="+charset);
 		httpResponse.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
 		httpResponse.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, buf.readableBytes());
 		
@@ -715,7 +722,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
 		FullHttpResponse response = new DefaultFullHttpResponse(
 				HTTP_1_1, status, Unpooled.copiedBuffer("Failure: " + status + "\r\n", CharsetUtil.UTF_8));
-		response.headers().set(CONTENT_TYPE, "text/plain; charset=UTF-8");
+		response.headers().set(CONTENT_TYPE, "text/plain; charset="+charset);
 		// Close the connection as soon as the error message is sent.
 		ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
 		reset();
@@ -764,7 +771,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		ByteBuf buf = copiedBuffer(sb.toString().getBytes());
 
 		FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
-		response.headers().set(CONTENT_TYPE, "text/html; charset=UTF-8");
+		response.headers().set(CONTENT_TYPE, "text/html; charset="+charset);
 
 		ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
 		reset();

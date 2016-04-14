@@ -15,7 +15,7 @@
  */
 package io.syncframework.api;
 
-public class RequestContextMock extends Context {
+public class RequestContextMock extends Context<String, Object> {
 	private static final long serialVersionUID = 4129335630680225434L;
 	public static final String REMOTE_ADDRESS = "com.syncobjects.as.api.RequestContext.REMOTE_ADDRESS";
 	public static final String REMOTE_PORT = "com.syncobjects.as.api.RequestContext.REMOTE_PORT";

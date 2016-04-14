@@ -26,6 +26,7 @@ import java.util.Locale;
 public class ApplicationConfig extends Config {
 	private static final long serialVersionUID = -4106496145463699646L;
 	public static final String CONFIG_FILENAME = "application.properties";
+	public static final String CHARSET_KEY = "application.charset";
 	public static final String DOMAINS_KEY = "application.domains";
 	public static final String LOCALE_KEY = "application.locale";
 	public static final String SESSION_EXPIRE_KEY = "application.session.expire";
@@ -38,9 +39,10 @@ public class ApplicationConfig extends Config {
 	private File baseDirectory;
 	private File classesDirectory;
 	private File libDirectory;
-	private Locale locale;
 	private File privateDirectory;
 	private File publicDirectory;
+	private String charset;
+	private Locale locale;
 	private long sessionExpire;
 	private String sessionFactory;
 	private String sessionIdKey;
@@ -74,14 +76,6 @@ public class ApplicationConfig extends Config {
 		this.libDirectory = libDirectory;
 	}
 
-	public Locale getLocale() {
-		return locale;
-	}
-
-	public void setLocale(Locale locale) {
-		this.locale = locale;
-	}
-
 	public File getPrivateDirectory() {
 		return privateDirectory;
 	}
@@ -96,6 +90,22 @@ public class ApplicationConfig extends Config {
 
 	public void setPublicDirectory(File publicDirectory) {
 		this.publicDirectory = publicDirectory;
+	}
+	
+	public String getCharset() {
+		return charset;
+	}
+
+	public void setCharset(String charset) {
+		this.charset = charset;
+	}
+
+	public Locale getLocale() {
+		return locale;
+	}
+
+	public void setLocale(Locale locale) {
+		this.locale = locale;
 	}
 
 	public long getSessionExpire() {

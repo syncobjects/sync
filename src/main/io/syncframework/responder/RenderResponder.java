@@ -16,6 +16,7 @@
 package io.syncframework.responder;
 
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Locale;
@@ -49,7 +50,7 @@ public class RenderResponder implements Responder {
 	private static final Logger log = LoggerFactory.getLogger(RenderResponder.class);
 	public final static String TEMPLATE_ENGINE = 
 			"com.syncobjects.as.responder.RenderResponder.TEMPLATE_ENGINE";
-	private final String charset = "UTF-8";
+	private String charset;
 	private ApplicationContext context;
 
 	public void destroy() throws Exception {
@@ -61,11 +62,12 @@ public class RenderResponder implements Responder {
 		this.context = context;
 		
 		ApplicationConfig config = (ApplicationConfig)context.get(ApplicationContext.PROPERTIES);
+		this.charset = config.getCharset();
 		
 		if(log.isDebugEnabled()) {
 			log.debug("render: using freemarker template version: {}", config.getTemplateVersion());
 			log.debug("render: {} template cache", config.getTemplateCache() != null && config.getTemplateCache()? "enabling": "disabling");
-			log.debug("render: using template charset {}", this.charset);
+			log.debug("render: using template charset [{}]", this.charset);
 		}
 		
 		Configuration cfg = new Configuration(new Version(config.getTemplateVersion()));
@@ -149,18 +151,18 @@ public class RenderResponder implements Responder {
 			if(locale == null)
 				locale = (Locale)bean.getApplicationContext().get(ApplicationContext.LOCALE);
 			if(locale != null) {
-				template = cfg.getTemplate(tpl, locale);
+				template = cfg.getTemplate(tpl, locale, this.charset);
 				if(log.isTraceEnabled())
 					log.trace("rendering "+bean+" to template "+template.getName()+", with locale "+locale);
 			}
 			else {
-				template = cfg.getTemplate(tpl);
+				template = cfg.getTemplate(tpl, this.charset);
 				if(log.isTraceEnabled())
 					log.trace("rendering "+bean+" to template "+template.getName());
 			}
 			
 			response.setCode(Response.Code.OK);
-			PrintWriter writer = new PrintWriter(bos);
+			PrintWriter writer = new PrintWriter(new OutputStreamWriter(bos, this.charset));
 			template.process(attributes, writer);
 			bos.flush();
 		}

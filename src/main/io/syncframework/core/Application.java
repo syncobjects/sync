@@ -136,7 +136,7 @@ public class Application {
 		domains.add(name);
 		map.put(name, name);
 		// parsing information from the configuration file
-		String domainAliases = config.getProperty(ApplicationConfig.DOMAINS_KEY);
+		String domainAliases = config.getProperty(ApplicationConfig.DOMAINS_KEY).trim();
 		if(domainAliases != null) {
 			String ds[] = domainAliases.split(",");
 			for(int i=0 ; i < ds.length; i++) {
@@ -154,10 +154,18 @@ public class Application {
 		if(log.isTraceEnabled())
 			log.trace("{} responsible for domains: {}", this, domains);
 		
+		//
 		// locale configuration
+		//
 		String localeString = config.getString(ApplicationConfig.LOCALE_KEY, Locale.getDefault().toString());
 		locale = StringUtils.toLocale(localeString);
 		config.setLocale(locale);
+		
+		//
+		// charset configuration
+		//
+		String charset = config.getString(ApplicationConfig.CHARSET_KEY, System.getProperty("file.encoding"));
+		config.setCharset(charset);
 		
 		//
 		// Session configuration

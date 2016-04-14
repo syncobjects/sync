@@ -16,7 +16,11 @@
 package io.syncframework.startup;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
+import java.util.Properties;
 
 import io.syncframework.Globals;
 
@@ -28,9 +32,12 @@ import io.syncframework.Globals;
  * @author dfroz
  */
 public class Bootstrap {
+	private static final String SERVER_DEFAULT_CHARSET_KEY = "default.charset";
+	private static final String SERVER_PROPERTIES_FILE = "server.properties";
 	private static final String defaultServerFactoryClassName = "io.syncframework.netty.ServerFactory";
 	private static final String serverInterfaceName = "io.syncframework.core.Server";
 	private static String serverFactoryClassName = null;
+	private static String defaultFileEncoding = "UTF-8";
 	
 	static {
 		String s = System.getProperty(Globals.SYNC_SERVER);
@@ -55,7 +62,27 @@ public class Bootstrap {
 		String basedir = System.getProperty(Globals.SYNC_BASE);
 		
 		System.out.println("Starting Sync App Server");
+		//
+		// setting @Server charset
+		//
+		String fileEncoding = defaultFileEncoding;
+		File spf = new File(basedir, SERVER_PROPERTIES_FILE);
+		if(!spf.isFile() || !spf.canRead()) {
+			throw new RuntimeException("Failed to locate/open the "+spf.getAbsolutePath()+" file");
+		}
+		FileInputStream fis = new FileInputStream(spf);
+		Properties properties = new Properties();
+		properties.load(fis);
+		if(properties.getProperty(SERVER_DEFAULT_CHARSET_KEY) != null)
+			fileEncoding = properties.getProperty(SERVER_DEFAULT_CHARSET_KEY).trim();
+		System.setProperty("file.encoding", fileEncoding);
+		// tricky code to make the JVM to make the Charset.defaultCharset() to take the new 
+		// System.getProperty("file.encoding") value
+		Field charset = Charset.class.getDeclaredField("defaultCharset");
+		charset.setAccessible(true);
+		charset.set(null, null);
 		
+		// lib folder
 		File libraryDirectory = new File(basedir, "lib");
 		if(!libraryDirectory.exists())
 			throw new RuntimeException(libraryDirectory.getAbsolutePath()+" is not a valid directory");

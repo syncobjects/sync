@@ -50,7 +50,7 @@ public class ClassOptimizer {
 		
 		if(clazz.isAnnotationPresent(Interceptor.class)) {
 			if(log.isTraceEnabled())
-				log.info("@Interceptor {} identified", clazz.getName());
+				log.trace("@Interceptor {} identified", clazz.getName());
 			
 			OInterceptorReflector reflector = new OInterceptorReflector(clazz);
 			reflector.reflect();
@@ -64,7 +64,7 @@ public class ClassOptimizer {
 		
 		if(clazz.isAnnotationPresent(Initializer.class)) {
 			if(log.isTraceEnabled())
-				log.info("@Initializer {} identified", clazz.getName());
+				log.trace("@Initializer {} identified", clazz.getName());
 			
 			OInitializerReflector reflector = new OInitializerReflector(clazz);
 			reflector.reflect();

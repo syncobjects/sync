@@ -28,6 +28,7 @@ public class Config extends Properties {
 	public boolean getBoolean(String key, boolean defaultValue) {
 		String value = getProperty(key);
 		if(value != null) {
+			value = value.trim();
 			return value.equalsIgnoreCase("true") || value.equalsIgnoreCase("enabled");
 		}
 		else {
@@ -39,7 +40,7 @@ public class Config extends Properties {
 	public long getLong(String key, long defaultValue) {
 		String value = getProperty(key);
 		if(value != null)
-			return Long.parseLong(value);
+			return Long.parseLong(value.trim());
 		else {
 			setProperty(key, new Long(defaultValue).toString());
 			return defaultValue;
@@ -49,7 +50,7 @@ public class Config extends Properties {
 	public int getInt(String key, int defaultValue) {
 		String value = getProperty(key);
 		if(value != null)
-			return Integer.parseInt(value);
+			return Integer.parseInt(value.trim());
 		else {
 			setProperty(key, new Integer(defaultValue).toString());
 			return defaultValue;
@@ -62,11 +63,11 @@ public class Config extends Properties {
 	
 	public String getString(String key, String defaultValue) {
 		String value = getProperty(key, defaultValue);
-		if(value == null || value.equals(defaultValue)) {
-			if(defaultValue != null)
+		if(defaultValue != null) {
+			if(value == null || value.equals(defaultValue))
 				setProperty(key, defaultValue);
 		}
-		return value;
+		return value.trim();
 	}
 	
 	public String toString() {
