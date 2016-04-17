@@ -32,12 +32,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PropertiesMessageFactory implements MessageFactory {
 	private final Map<Locale,Properties> resources = new ConcurrentHashMap<Locale,Properties>();
 	private final Map<String,MessageFormat> formatters = new ConcurrentHashMap<String,MessageFormat>();
+	private File dir;
 	
-	public PropertiesMessageFactory() {
-		super();
+	public PropertiesMessageFactory(File dir) {
+		this.dir = dir;
 	}
 
-	public void load(File dir) throws Exception {
+	public void init() throws Exception {
+		if(dir == null)
+			throw new RuntimeException("init called without dir");
 		if(!dir.isDirectory())
 			throw new RuntimeException(dir+" is not a directory");
 		File files[] = dir.listFiles(new FileFilter() {

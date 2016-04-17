@@ -33,12 +33,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ResourceBundleMessageFactory implements MessageFactory {
 	private final Map<Locale,ResourceBundle> resources = new ConcurrentHashMap<Locale,ResourceBundle>();
 	private final Map<String,MessageFormat> formatters = new ConcurrentHashMap<String,MessageFormat>();
+	private File dir;
 	
-	public ResourceBundleMessageFactory() {
-		super();
+	public ResourceBundleMessageFactory(File dir) {
+		this.dir = dir;
 	}
 
-	public void load(File dir) throws Exception {
+	public void init() throws Exception {
+		if(dir == null)
+			throw new RuntimeException("init called without dir");
 		if(!dir.isDirectory())
 			throw new RuntimeException(dir+" is not a directory");
 		File files[] = dir.listFiles(new FileFilter() {

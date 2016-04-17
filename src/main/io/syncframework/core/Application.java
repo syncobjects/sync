@@ -204,8 +204,8 @@ public class Application {
 		initContext();
 		initClassLoader();
 		
-		messageFactory = new ResourceBundleMessageFactory();
-		messageFactory.load(config.getBaseDirectory());
+		messageFactory = new ResourceBundleMessageFactory(config.getBaseDirectory());
+		messageFactory.init();
 		
 		responderFactory = new ResponderFactory();
 		responderFactory.init(this);

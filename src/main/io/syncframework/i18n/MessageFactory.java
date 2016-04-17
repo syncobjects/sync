@@ -15,7 +15,6 @@
  */
 package io.syncframework.i18n;
 
-import java.io.File;
 import java.util.Locale;
 
 /**
@@ -25,6 +24,6 @@ import java.util.Locale;
  */
 public interface MessageFactory {
 	public static final String MESSAGES_BASENAME = "messages";
-	public void load(File basedir) throws Exception;
+	public void init() throws Exception;
 	public String get(Locale locale, String key, String ... args);
 }
