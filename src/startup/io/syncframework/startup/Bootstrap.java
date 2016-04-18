@@ -61,7 +61,7 @@ public class Bootstrap {
 	public void start() throws Exception {
 		String basedir = System.getProperty(Globals.SYNC_BASE);
 		
-		System.out.println("Starting Sync App Server");
+		System.out.println("Starting SYNC|Framework");
 		//
 		// setting @Server charset
 		//
