@@ -81,10 +81,11 @@ public class Application {
 	
 	private void initConfig() throws Exception {
 		File file = new File(base, ApplicationConfig.CONFIG_FILENAME);
+		if(!file.exists()) {
+			throw new RuntimeException("failed to locate application configuration file: "+file.getAbsolutePath());
+		}
 		try {
-			if(file.exists()) {
-				config.load(new FileInputStream(file));
-			}
+			config.load(new FileInputStream(file));
 		}
 		catch(Exception e) {
 			throw new RuntimeException("failed to load application configuration file: "+file.getAbsolutePath(), e);
@@ -222,8 +223,8 @@ public class Application {
 		else {
 			sessionFactory = new SessionFactoryDefaultImpl();
 		}
-		if(log.isInfoEnabled())
-			log.info("{} using {} session factory", this, sessionFactory);
+		if(log.isDebugEnabled())
+			log.debug("{} using {} session factory", this, sessionFactory);
 		sessionFactory.start(config);
 		
 		// class loader for this application
