@@ -69,8 +69,12 @@ public class InterceptorBean implements ResponseBean {
 		sessionContext = request.getSession().getSessionContext();
 		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), sessionContext);
 
+		/*
+		 *  INVOKE SPECIALS
+		 */
 		interceptor._asApplicationContext(application.getContext());
 		interceptor._asCookieContext(cookieContext);
+		interceptor._asErrorContext(errorContext);
 		interceptor._asMessageContext(messageContext);
 		interceptor._asRequestContext(requestContext);
 		interceptor._asSessionContext(sessionContext);
@@ -177,8 +181,12 @@ public class InterceptorBean implements ResponseBean {
 		sessionContext = request.getSession().getSessionContext();
 		messageContext = new MessageContextImpl(application.getMessageFactory(), application.getContext(), sessionContext);
 
+		/*
+		 *  INVOKE SPECIALS
+		 */
 		interceptor._asApplicationContext(application.getContext());
 		interceptor._asCookieContext(cookieContext);
+		interceptor._asErrorContext(errorContext);
 		interceptor._asMessageContext(messageContext);
 		interceptor._asRequestContext(requestContext);
 		interceptor._asSessionContext(sessionContext);

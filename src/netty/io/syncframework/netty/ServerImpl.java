@@ -40,6 +40,7 @@ import io.syncframework.core.Application;
 import io.syncframework.core.ApplicationManager;
 import io.syncframework.core.Server;
 import io.syncframework.core.ServerConfig;
+import io.syncframework.util.SarUtils;
 
 /**
  * All App Server implementation is here.
@@ -115,14 +116,32 @@ public class ServerImpl implements Server {
 		}
 		
 		File appdir = new File(basedir, Globals.APPLICATIONS_DIRNAME);
+		// scan for .sar files
 		File files[] = appdir.listFiles(new FileFilter() {
+			public boolean accept(File f) {
+				if(f.getName().endsWith(".sar"))
+					return true;
+				return false;
+			}
+		});
+		for(File sar: files) {
+			try {
+				if(log.isInfoEnabled())
+					log.info("deploying SAR {}", sar.getName());
+				SarUtils.unpack(sar, appdir);
+			}
+			catch(Exception e) {
+				log.error("failed to uncompress sar file {}: {}", sar.getName(), e);
+			}
+		}
+		// scan for directories
+		files = appdir.listFiles(new FileFilter() {
 			public boolean accept(File f) {
 				if(f.isDirectory())
 					return true;
 				return false;
 			}
 		});
-		
 		applications = new LinkedList<Application>();
 		for(File dir: files) {
 			Application application = new Application(dir);

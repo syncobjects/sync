@@ -91,11 +91,9 @@ public class ZipUtils {
 		int n = 0;
 
 		zipFile = new ZipFile(srcfile);
-
-		@SuppressWarnings("rawtypes")
-		Enumeration entries = zipFile.entries();
+		Enumeration<? extends ZipEntry> entries = zipFile.entries();
 		while(entries.hasMoreElements()) {
-			ZipEntry entry = (ZipEntry)entries.nextElement();
+			ZipEntry entry = entries.nextElement();
 			if(entry.isDirectory()) {
 				File dir = new File(destdir, entry.getName());
 				if(!dir.isDirectory()) {
