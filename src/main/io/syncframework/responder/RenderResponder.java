@@ -186,7 +186,7 @@ public class RenderResponder implements Responder {
 		String contentType = "text/html; charset="+this.charset;
 		if(rr.getHeaders().containsKey(Result.CONTENT_TYPE_HEADER)) {
 			contentType = rr.getHeaders().get(Result.CONTENT_TYPE_HEADER);
-			if(!contentType.contains("charset"))
+			if(contentType != null && contentType.contains("charset") == false)
 				contentType += "; charset="+this.charset;
 			rr.getHeaders().remove(Result.CONTENT_TYPE_HEADER);
 		}
