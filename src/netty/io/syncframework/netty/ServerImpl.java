@@ -197,6 +197,7 @@ public class ServerImpl implements Server {
             }
             catch(Exception e) {
             	log.error("{} has failed to bind to socket: ", this, e);
+            	System.exit(1);
             }
         } finally {
             bossGroup.shutdownGracefully();
