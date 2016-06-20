@@ -71,12 +71,18 @@ public class RenderResponder implements Responder {
 		}
 		
 		Configuration cfg = new Configuration(new Version(config.getTemplateVersion()));
-		cfg.setDefaultEncoding(this.charset);
 		cfg.setDirectoryForTemplateLoading(config.getPrivateDirectory());
 		cfg.setLocalizedLookup(true);
 		cfg.setLocale(config.getLocale());
 		cfg.setNumberFormat("computer");
 		cfg.setAPIBuiltinEnabled(true);
+		// encoding
+		cfg.setDefaultEncoding(this.charset);
+		cfg.setOutputEncoding(this.charset);
+		cfg.setURLEscapingCharset(this.charset);
+		//
+		// production or development environment settings
+		//
 		if(config.getTemplateCache() != null && config.getTemplateCache()) {
 			cfg.setTemplateUpdateDelayMilliseconds(Long.MAX_VALUE); // loads templates only once
 			cfg.setCacheStorage(new MruCacheStorage(Integer.MAX_VALUE, 0));
@@ -85,6 +91,7 @@ public class RenderResponder implements Responder {
 		}
 		else {
 			cfg.setTemplateUpdateDelayMilliseconds(0);
+			cfg.setTemplateExceptionHandler(TemplateExceptionHandler.HTML_DEBUG_HANDLER);
 		}
 		cfg.setObjectWrapper(new DefaultObjectWrapper(new Version(config.getTemplateVersion())));
 		
