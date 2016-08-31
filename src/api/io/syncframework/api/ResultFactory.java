@@ -32,7 +32,7 @@ public class ResultFactory {
 		if(cache)
 			r = file.get(path.toLowerCase());
 		if(r == null)
-			r = new FileResult(path);
+			r = new FileResult(path, type);
 		if(cache)
 			file.put(path.toLowerCase(), r);
 		return r;
