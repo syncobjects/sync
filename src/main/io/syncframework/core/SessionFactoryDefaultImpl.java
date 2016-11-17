@@ -122,6 +122,8 @@ public class SessionFactoryDefaultImpl implements SessionFactory {
 				try { Thread.sleep(timeout); } catch (InterruptedException ignore) {}
 				for(String id: sessions.keySet()) {
 					Session session = sessions.get(id);
+					if(session == null)
+						continue;
 					long now = System.currentTimeMillis();
 					long elapsed = now - session.getAccessTime();
 					// if(log.isTraceEnabled())

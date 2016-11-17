@@ -52,16 +52,16 @@ public class ServerImpl implements Server {
 	private final ServerConfig config = new ServerConfig();
 	private List<Application> applications;
 	private static final String name = "Netty";
-	
+
 	@Override
 	public ServerConfig config() {
 		return config;
 	}
-	
+
 	@Override
 	public void init() {
 		String basedir = System.getProperty(Globals.SYNC_BASE);
-		
+
 		//
 		// configure & initialize logging subsystem with logback
 		//
@@ -80,10 +80,10 @@ public class ServerImpl implements Server {
 				System.exit(1);
 			}
 		}
-		
+
 		if(log.isInfoEnabled())
 			log.info("{} initializing using directory {}", this, basedir);
-		
+
 		File mimesfile = new File(basedir, "conf"+File.separator+"mime.types");
 		if(mimesfile.exists()) {
 			if(log.isTraceEnabled())
@@ -99,7 +99,7 @@ public class ServerImpl implements Server {
 				log.trace("{} loading default/known mime types.", this);
 			MimeUtils.init();
 		}
-		
+
 		// init configuration
 		File configFile = new File(basedir, Globals.SERVER_PROPERTIES);
 		try {
@@ -114,8 +114,12 @@ public class ServerImpl implements Server {
 			log.error("{} has failed to read configuration file {}", this, configFile);
 			System.exit(1);
 		}
-		
+
 		File appdir = new File(basedir, Globals.APPLICATIONS_DIRNAME);
+		if(!appdir.isDirectory()) {
+			System.err.println("directory "+appdir.getAbsolutePath()+" does not exist");
+			System.exit(1);
+		}
 		// scan for .sar files
 		File files[] = appdir.listFiles(new FileFilter() {
 			public boolean accept(File f) {
@@ -124,6 +128,7 @@ public class ServerImpl implements Server {
 				return false;
 			}
 		});
+		// unpacking sar files...
 		for(File sar: files) {
 			try {
 				if(log.isInfoEnabled())
@@ -156,12 +161,12 @@ public class ServerImpl implements Server {
 				log.error("invalidating {} until the problem is fixed", application);
 			}
 		}
-		
+
 		Runtime.getRuntime().addShutdownHook(new Thread("shutdown") {
 			public void run() {
 				if(log.isInfoEnabled())
 					log.info("{} is initializing graceful shutdown", this);
-				
+
 				// stopping process
 				for(Application application: applications) {
 					try {
@@ -173,37 +178,38 @@ public class ServerImpl implements Server {
 						log.error("{} failed to stop {}: ", this, application, e);
 					}
 				}
-				
+
 				if(log.isInfoEnabled())
 					log.info("@Applications stopped. Goodbye!");
 			}
 		});
-		
+
 		EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
-        try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup);
-            b.channel(NioServerSocketChannel.class);
-            b.childHandler(new ServerInitializer(this));
-            try {
-            	ChannelFuture chf = null;
-            	if(config.getListenAddress() != null)
-            		chf = b.bind(config.getListenAddress(), config.getListenPort());
-            	else
-            		chf = b.bind(config.getListenPort());
-	            Channel ch = chf.sync().channel();
-	            ch.closeFuture().sync();
-            }
-            catch(Exception e) {
-            	log.error("{} has failed to bind to socket: ", this, e);
-            }
-        } finally {
-            bossGroup.shutdownGracefully();
-            workerGroup.shutdownGracefully();
-        }
+		EventLoopGroup workerGroup = new NioEventLoopGroup();
+		try {
+			ServerBootstrap b = new ServerBootstrap();
+			b.group(bossGroup, workerGroup);
+			b.channel(NioServerSocketChannel.class);
+			b.childHandler(new ServerInitializer(this));
+			try {
+				ChannelFuture chf = null;
+				if(config.getListenAddress() != null)
+					chf = b.bind(config.getListenAddress(), config.getListenPort());
+				else
+					chf = b.bind(config.getListenPort());
+				Channel ch = chf.sync().channel();
+				ch.closeFuture().sync();
+			}
+			catch(Exception e) {
+				log.error("{} has failed to bind to socket: ", this, e);
+				System.exit(1);
+			}
+		} finally {
+			bossGroup.shutdownGracefully();
+			workerGroup.shutdownGracefully();
+		}
 	}
-	
+
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("@Server ").append(name);
