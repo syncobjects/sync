@@ -259,15 +259,21 @@ public class Application {
 		if(log.isInfoEnabled())
 			log.info("{} starting",this);
 		init();
+		if(log.isInfoEnabled())
+			log.info("{} started successfully", this);
 	}
 	
 	public void stop() throws Exception {
+		if(log.isInfoEnabled())
+			log.info("{} stopping", this);
 		if(initializerFactory == null) {
 			if(log.isDebugEnabled())
 				log.debug("application not initialized for stop procedure... InitializerFactory is null");
 			return;
 		}
 		initializerFactory.destroy();
+		if(log.isInfoEnabled())
+			log.info("{} stopped successfully");
 	}
 	
 	public ClassLoader getClassLoader() {
