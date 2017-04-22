@@ -260,7 +260,7 @@ public class Application {
 			log.info("{} starting",this);
 		init();
 		if(log.isInfoEnabled())
-			log.info("{} started successfully", this);
+			log.info("{} started", this);
 	}
 	
 	public void stop() throws Exception {
@@ -273,7 +273,7 @@ public class Application {
 		}
 		initializerFactory.destroy();
 		if(log.isInfoEnabled())
-			log.info("{} stopped successfully");
+			log.info("{} stopped");
 	}
 	
 	public ClassLoader getClassLoader() {
