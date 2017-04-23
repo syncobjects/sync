@@ -183,6 +183,9 @@ public class ServerImpl implements Server {
 					log.info("@Applications stopped. Goodbye!");
 			}
 		});
+		
+		if(log.isInfoEnabled())
+			log.info("{} starting network", this);
 
 		EventLoopGroup bossGroup = new NioEventLoopGroup(1);
 		EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -197,6 +200,8 @@ public class ServerImpl implements Server {
 					chf = b.bind(config.getListenAddress(), config.getListenPort());
 				else
 					chf = b.bind(config.getListenPort());
+				if(log.isInfoEnabled())
+					log.info("{} accepting connections...", this);
 				Channel ch = chf.sync().channel();
 				ch.closeFuture().sync();
 			}
