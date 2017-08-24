@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 SyncObjects Ltda.
+ * Copyright 2016-2017 SyncObjects Ltda.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import java.util.Locale;
 
 public interface MessageContext {
 	public String get(String key);
-	public String get(String key, String ... args);
+	public String get(String key, Object ... args);
 	public String get(Locale locale, String key);
-	public String get(Locale locale, String key, String ... args);
+	public String get(Locale locale, String key, Object ... args);
 }

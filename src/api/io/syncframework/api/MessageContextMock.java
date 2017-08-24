@@ -19,15 +19,15 @@ import java.util.Locale;
 
 public class MessageContextMock implements MessageContext {
 	public String get(String key) {
-		return get(key, new String[0]);
+		return get(key, new Object[0]);
 	}
-	public String get(String key, String ... args) {
+	public String get(String key, Object ... args) {
 		return get(null, key, args);
 	}
 	public String get(Locale locale, String key) {
-		return get(null, key, new String[0]);
+		return get(null, key, new Object[0]);
 	}
-	public String get(Locale locale, String key, String ... args) {
+	public String get(Locale locale, String key, Object ... args) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(key);
 		for(int i=0; i < args.length; i++) {

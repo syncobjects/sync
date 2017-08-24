@@ -25,5 +25,5 @@ import java.util.Locale;
 public interface MessageFactory {
 	public static final String MESSAGES_BASENAME = "messages";
 	public void init() throws Exception;
-	public String get(Locale locale, String key, String ... args);
+	public String get(Locale locale, String key, Object ... args);
 }

@@ -96,7 +96,7 @@ public class ResourceBundleMessageFactory implements MessageFactory {
 		}
 	}
 
-	public String get(Locale locale, String key, String ... args) {		
+	public String get(Locale locale, String key, Object ... args) {		
 		ResourceBundle bundle = resources.get(locale);
 		// System.out.println("bundle == null? "+(bundle == null ? true: false)+": "+locale);
 		if(bundle == null && locale.getVariant() != null) {

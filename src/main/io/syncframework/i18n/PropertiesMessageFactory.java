@@ -98,7 +98,7 @@ public class PropertiesMessageFactory implements MessageFactory {
 		}
 	}
 
-	public String get(Locale locale, String key, String ... args) {
+	public String get(Locale locale, String key, Object ... args) {
 		Properties props = resources.get(locale);
 		if(props == null && locale.getVariant() != null) {
 			locale = new Locale(locale.getLanguage(), locale.getCountry(), locale.getVariant());
