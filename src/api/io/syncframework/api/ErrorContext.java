@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 SyncObjects Ltda.
+ * Copyright (c) 2016-2017. SyncObjects Ltda.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,13 @@
  */
 package io.syncframework.api;
 
+/**
+ * Special parameter to your {link @Controller}. ErrorContext is available during the request cycle and persisted whether the Result
+ * is a Redirect. In this case, if you set an Error while responding with RedirectResult, next call to RenderResult, the information
+ * will be there to be handled either by @Controller or by the Render engine.
+ * 
+ * @author dfroz
+ */
 public class ErrorContext extends Context<String,String> {
 	private static final long serialVersionUID = 92320367354664164L;
 }

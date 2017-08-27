@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 SyncObjects Ltda.
+ * Copyright (c) 2016-2017. SyncObjects Ltda.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,15 @@ package io.syncframework.api;
 
 import java.io.File;
 
+/**
+ * <p>File upload class representation. It is a special {link @Parameter}. Any multipart form data uploaded to the
+ * @Application will made available to your {link @Controller} using this class.
+ * </p>
+ * <p>Important to note that you're application is the ultimate responsible for handling files uploaded to the server.
+ * In this case file system clean up shall be handled within your {link @Controller}'s code</p>
+ * 
+ * @author dfroz
+ */
 public class FileUpload {
 	private File file;
 	private String name;
