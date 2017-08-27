@@ -95,7 +95,7 @@
 				<include name="lib/junit-4.12.jar"/>
 				<include name="lib/logback-classic-1.2.3.jar"/>
 				<include name="lib/logback-core-1.2.3.jar"/>
-				<include name="lib/netty-all-4.1.9.Final.jar"/>
+				<include name="lib/netty-all-4.1.15.Final.jar"/>
 				<include name="lib/slf4j-api-1.7.25.jar"/>
 				<include name="server.properties"/>
 			</tarfileset>
