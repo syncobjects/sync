@@ -44,11 +44,29 @@ public class OInterceptorStaticMethodVisitor extends MethodVisitor {
 		mv.visitCode();
 		mv.visitTryCatchBlock(start, l1, l2, "java/lang/Throwable");
 		
+		/*
+		 * _asAfterType = "application/json";
+		 */
+		{
+			mv.visitLabel(start);
+			mv.visitLdcInsn(reflector.getAfterType());
+			mv.visitFieldInsn(Opcodes.PUTSTATIC, reflector.getClazzInternalName(), "_asAfterType", "Ljava/lang/String;");
+		}
+		/*
+		 * _asBeforeType = "text/html";
+		 */
+		{
+			Label l = new Label();
+			mv.visitLabel(l);
+			mv.visitLdcInsn(reflector.getBeforeType());
+			mv.visitFieldInsn(Opcodes.PUTSTATIC, reflector.getClazzInternalName(), "_asBeforeType", "Ljava/lang/String;");
+		}
 		/* 
 		 * _asParameters = new HashMap<String,Class<?>>() 
 		 */
 		{
-			mv.visitLabel(start);
+			Label l = new Label();
+			mv.visitLabel(l);
 			mv.visitTypeInsn(Opcodes.NEW, "java/util/HashMap");
 			mv.visitInsn(Opcodes.DUP);
 			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false);

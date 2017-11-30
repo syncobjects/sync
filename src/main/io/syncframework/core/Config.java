@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 SyncObjects Ltda.
+ * Copyright 2012-2017 SyncObjects Ltda.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,7 @@ package io.syncframework.core;
 import java.util.Properties;
 
 /**
- * 
  * @author dfroz
- *
  */
 public class Config extends Properties {
 	private static final long serialVersionUID = -5646816006054590490L;
@@ -32,7 +30,7 @@ public class Config extends Properties {
 			return value.equalsIgnoreCase("true") || value.equalsIgnoreCase("enabled");
 		}
 		else {
-			setProperty(key, new Boolean(defaultValue).toString());
+			setProperty(key, Boolean.toString(defaultValue));
 			return defaultValue;
 		}
 	}
@@ -42,7 +40,7 @@ public class Config extends Properties {
 		if(value != null)
 			return Long.parseLong(value.trim());
 		else {
-			setProperty(key, new Long(defaultValue).toString());
+			setProperty(key, Long.valueOf(defaultValue).toString());
 			return defaultValue;
 		}
 	}
@@ -52,7 +50,7 @@ public class Config extends Properties {
 		if(value != null)
 			return Integer.parseInt(value.trim());
 		else {
-			setProperty(key, new Integer(defaultValue).toString());
+			setProperty(key, Integer.valueOf(defaultValue).toString());
 			return defaultValue;
 		}
 	}

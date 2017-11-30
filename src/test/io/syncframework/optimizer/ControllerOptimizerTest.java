@@ -42,13 +42,13 @@ public class ControllerOptimizerTest {
 		try { fos.close(); } catch(Exception ignore) {}
 		
 		TestClassLoader tcl = new TestClassLoader();
-		tcl.defineClass("com.syncobjects.as.optimizer.ExampleController", b);
+		tcl.defineClass("io.syncframework.optimizer.ExampleController", b);
 		
-		Class<?> optimizedControllerClazz = tcl.loadClass("com.syncobjects.as.optimizer.ExampleController");
+		Class<?> optimizedControllerClazz = tcl.loadClass("io.syncframework.optimizer.ExampleController");
 		Assert.assertTrue(optimizedControllerClazz != null);
 		Assert.assertTrue(OController.class.isAssignableFrom(optimizedControllerClazz));
 		
-		controller = (OController)optimizedControllerClazz.newInstance();
+		controller = (OController)optimizedControllerClazz.getDeclaredConstructor().newInstance();
 	}
 	
 	@Test
@@ -82,7 +82,7 @@ public class ControllerOptimizerTest {
 		// checking converter
 		Class<?> converterClazz = (Class<?>)controller._asParameterConverter("date");
 		
-		Converter<?> converter = (Converter<?>)converterClazz.newInstance();
+		Converter<?> converter = (Converter<?>)converterClazz.getDeclaredConstructor().newInstance();
 		
 		log.info("converter: {}", converter.getClass().getName());
 		

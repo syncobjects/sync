@@ -59,7 +59,7 @@ public class InitializerFactory {
 		if(clazz.isAssignableFrom(OInitializer.class))
 			throw new IllegalArgumentException(clazz+" is not a valid @Initializer");
 		
-		OInitializer i = (OInitializer)clazz.newInstance();
+		OInitializer i = (OInitializer)clazz.getDeclaredConstructor().newInstance();
 		initializers.add(new InitializerBean(application, i));
 	}
 }

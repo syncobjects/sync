@@ -190,10 +190,10 @@ public class RenderResponder implements Responder {
 		
 		// Content-type
 		
-		String contentType = "text/html; charset="+this.charset;
+		String contentType = String.format("%s; charset=%s", bean.getContentType(), this.charset);
 		if(rr.getHeaders().containsKey(Result.CONTENT_TYPE_HEADER)) {
 			contentType = rr.getHeaders().get(Result.CONTENT_TYPE_HEADER);
-			if(contentType != null && contentType.contains("charset") == false)
+			if(contentType != null && contentType.toLowerCase().contains("charset") == false)
 				contentType += "; charset="+this.charset;
 			rr.getHeaders().remove(Result.CONTENT_TYPE_HEADER);
 		}

@@ -33,7 +33,9 @@ import io.syncframework.api.SessionContext;
  */
 public interface OInterceptor {
 	public Result _asAfter();
+	public String _asAfterType();
 	public Result _asBefore();
+	public String _asBeforeType();
 	/**
 	 * @return Map with \@Parameters name as key and Class<?> as value
 	 */

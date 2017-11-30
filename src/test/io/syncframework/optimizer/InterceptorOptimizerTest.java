@@ -21,8 +21,6 @@ import io.syncframework.api.RenderResult;
 import io.syncframework.api.RequestContext;
 import io.syncframework.api.Result;
 import io.syncframework.api.SessionContext;
-import io.syncframework.optimizer.ClassOptimizer;
-import io.syncframework.optimizer.OInterceptor;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class InterceptorOptimizerTest {
@@ -43,13 +41,13 @@ public class InterceptorOptimizerTest {
 		try { fos.close(); } catch(Exception ignore) {}
 		
 		TestClassLoader tcl = new TestClassLoader();
-		tcl.defineClass("com.syncobjects.as.optimizer.ExampleInterceptor", b);
+		tcl.defineClass("io.syncframework.optimizer.ExampleInterceptor", b);
 		
-		Class<?> optimizedInterceptorClazz = tcl.loadClass("com.syncobjects.as.optimizer.ExampleInterceptor");
+		Class<?> optimizedInterceptorClazz = tcl.loadClass("io.syncframework.optimizer.ExampleInterceptor");
 		Assert.assertTrue(optimizedInterceptorClazz != null);
 		Assert.assertTrue(OInterceptor.class.isAssignableFrom(optimizedInterceptorClazz));
 		
-		interceptor = (OInterceptor)optimizedInterceptorClazz.newInstance();
+		interceptor = (OInterceptor)optimizedInterceptorClazz.getDeclaredConstructor().newInstance();
 	}
 	
 	@Test
@@ -78,7 +76,7 @@ public class InterceptorOptimizerTest {
 		// checking converter
 		Class<?> converterClazz = (Class<?>)interceptor._asParameterConverter("date");
 		
-		Converter<?> converter = (Converter<?>)converterClazz.newInstance();
+		Converter<?> converter = (Converter<?>)converterClazz.getDeclaredConstructor().newInstance();
 		
 		log.info("converter: {}", converter.getClass().getName());
 		

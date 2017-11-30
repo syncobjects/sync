@@ -17,7 +17,6 @@ import io.syncframework.api.RequestContext;
 import io.syncframework.api.Result;
 import io.syncframework.api.ResultFactory;
 import io.syncframework.api.SessionContext;
-import io.syncframework.optimizer.OController;
 
 /**
  * Example of an optimized @Controller
@@ -35,7 +34,7 @@ public class ExampleOptimizedController implements OController {
 	@Parameter(converter=SimpleDateConverter.class)
 	private Date date;
 	
-	@Action
+	@Action(type="text/html")
 	public Result main() {
 		int i=0;
 		application.put("i", i++);
@@ -44,7 +43,7 @@ public class ExampleOptimizedController implements OController {
 		return ResultFactory.render("/main.ftl");
 	}
 	
-	@Action(interceptedBy={ ExampleInterceptor.class, DummyInterceptor.class })
+	@Action(type="text/html", interceptedBy={ ExampleInterceptor.class, DummyInterceptor.class })
 	public Result upload() {
 		int i=0;
 		application.put("i", i++);
@@ -53,7 +52,7 @@ public class ExampleOptimizedController implements OController {
 		return ResultFactory.render("/upload.ftl");
 	}
 	
-	@Action(interceptedBy=ExampleInterceptor.class)
+	@Action(type="text/html", interceptedBy=ExampleInterceptor.class)
 	public Result save() {
 		int i=0;
 		application.put("i", i++);
@@ -62,7 +61,7 @@ public class ExampleOptimizedController implements OController {
 		return ResultFactory.render("/save.ftl");
 	}
 	
-	@Action
+	@Action(type="text/html")
 	public Result redir() {
 		int i=0;
 		application.put("i", i++);
@@ -115,6 +114,7 @@ public class ExampleOptimizedController implements OController {
 	// ASM generated code.
 	//
 	private static Map<String, Boolean> _asActions;
+	private static Map<String, String> _asActionsType;
 	private static Map<String, Class<?>> _asConverters;
 	private static Map<String, Class<?>[]> _asInterceptors;
 	private static Map<String, Class<?>> _asParameters;
@@ -127,6 +127,11 @@ public class ExampleOptimizedController implements OController {
 			_asActions.put("save", true);
 			_asActions.put("redir", true);
 			
+			_asActionsType = new HashMap<String,String>();
+			_asActionsType.put("main", "text/html");
+			_asActionsType.put("upload", "text/html");
+			_asActionsType.put("save", "text/html");
+			_asActionsType.put("redir", "text/html");
 			
 			_asInterceptors = new HashMap<String, Class<?>[]>();
 			List<Class<?>> l = new ArrayList<Class<?>>();
@@ -217,6 +222,11 @@ public class ExampleOptimizedController implements OController {
 	@Override
 	public void _asSessionContext(SessionContext session) {
 		this.session = session;
+	}
+	
+	@Override
+	public String _asActionType(String name) {
+		return _asActionsType.get(name);
 	}
 
 	@Override

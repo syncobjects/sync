@@ -64,7 +64,7 @@ public class InterceptorFactory {
 		if(clazz.isAssignableFrom(OInitializer.class))
 			throw new IllegalArgumentException(clazz+" is not a valid @Initializer");
 
-		OInterceptor i = (OInterceptor)clazz.newInstance();
+		OInterceptor i = (OInterceptor)clazz.getDeclaredConstructor().newInstance();
 		map.put(clazz, new InterceptorBean(application, i));
 	}
 }

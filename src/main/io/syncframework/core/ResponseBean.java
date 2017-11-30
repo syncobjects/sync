@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 SyncObjects Ltda.
+ * Copyright 2012-2017 SyncObjects Ltda.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,12 +25,11 @@ import io.syncframework.api.RequestContext;
 import io.syncframework.api.SessionContext;
 
 /**
- * 
  * @author dfroz
- *
  */
 public interface ResponseBean {
 	public ApplicationContext getApplicationContext();
+	public String getContentType();
 	public Object getParameter(String name) throws Exception;
 	public Set<String> getParametersName();
 	public CookieContext getCookieContext();

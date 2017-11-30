@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 SyncObjects Ltda.
+ * Copyright 2012-2017 SyncObjects Ltda.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,17 +72,25 @@ public class OInterceptorClassVisitor extends ClassVisitor {
 	 */
 	@Override
 	public void visitEnd() {
-		//
+		// private static String _asAfterType;
+		{
+			FieldVisitor fv = cv.visitField(Opcodes.ACC_PRIVATE + Opcodes.ACC_STATIC, "_asAfterType", "Ljava/lang/String;", 
+					null, null);
+			fv.visitEnd();
+		}
+		// private static String _asBeforeType;
+		{
+			FieldVisitor fv = cv.visitField(Opcodes.ACC_PRIVATE + Opcodes.ACC_STATIC, "_asBeforeType", "Ljava/lang/String;", 
+					null,	null);
+			fv.visitEnd();
+		}
 		// private static Map<String,Class<?>> _asConverters;
-		//
 		{
 			FieldVisitor fv = cv.visitField(Opcodes.ACC_PRIVATE + Opcodes.ACC_STATIC, "_asConverters", "Ljava/util/Map;",
 					"Ljava/util/Map<Ljava/lang/String;Ljava/lang/Class<*>;>;", null);
 			fv.visitEnd();
 		}
-		//
 		// private static Map<String,Class<?>> _asParameters;
-		//
 		{
 			FieldVisitor fv = cv.visitField(Opcodes.ACC_PRIVATE + Opcodes.ACC_STATIC, "_asParameters", "Ljava/util/Map;",
 					"Ljava/util/Map<Ljava/lang/String;Ljava/lang/Class<*>;>;", null);
@@ -112,8 +120,10 @@ public class OInterceptorClassVisitor extends ClassVisitor {
 		createParametersGetterMethod();
 		createParameterConverterMethod();
 		
-		createBeforeMethod();
 		createAfterMethod();
+		createAfterTypeMethod();
+		createBeforeMethod();
+		createBeforeTypeMethod();
 	}
 	
 	/**
@@ -124,14 +134,14 @@ public class OInterceptorClassVisitor extends ClassVisitor {
 	 * }
 	 */
 	public void createAfterMethod() {
-		String signature = "()"+Type.getDescriptor(Result.class);
-		MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC, "_asAfter", signature, null, null);
+		String description = "()"+Type.getDescriptor(Result.class);
+		MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC, "_asAfter", description, null, null);
 		Label l0 = new Label();
 		
 		if(reflector.getAfter() != null) {
 			mv.visitLabel(l0);
 			mv.visitVarInsn(Opcodes.ALOAD, 0);
-			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, reflector.getClazzInternalName(), "after", signature, false);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, reflector.getClazzInternalName(), "after", description, false);
 			mv.visitInsn(Opcodes.ARETURN);
 		}
 		else {
@@ -147,6 +157,26 @@ public class OInterceptorClassVisitor extends ClassVisitor {
 	}
 	
 	/**
+	 * Generates code:
+	 * public Result _asAfterType() {
+	 * 	return _asAfterType;
+	 * }
+	 */
+	public void createAfterTypeMethod() {
+		MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC, "_asAfterType", "()Ljava/lang/String;", null, null);
+		
+		Label l0 = new Label();
+		mv.visitLabel(l0);
+		mv.visitFieldInsn(Opcodes.GETSTATIC, reflector.getClazzInternalName(), "_asAfterType", "Ljava/lang/String;");
+		mv.visitInsn(Opcodes.ARETURN);
+		
+		Label l1 = new Label();
+		mv.visitLocalVariable("this", reflector.getClazzDescriptor(), null, l0, l1, 0);
+		mv.visitMaxs(1, 1);
+		mv.visitEnd();
+	}
+	
+	/**
 	 * Generates the code:
 	 * 
 	 * public Result _asBefore() {
@@ -154,14 +184,14 @@ public class OInterceptorClassVisitor extends ClassVisitor {
 	 * }
 	 */
 	public void createBeforeMethod() {
-		String signature = "()"+Type.getDescriptor(Result.class);
-		MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC, "_asBefore", signature, null, null);
+		String description = "()"+Type.getDescriptor(Result.class);
+		MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC, "_asBefore", description, null, null);
 		Label l0 = new Label();
 		
 		if(reflector.getAfter() != null) {
 			mv.visitLabel(l0);
 			mv.visitVarInsn(Opcodes.ALOAD, 0);
-			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, reflector.getClazzInternalName(), "before", signature, false);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, reflector.getClazzInternalName(), "before", description, false);
 			mv.visitInsn(Opcodes.ARETURN);
 		}
 		else {
@@ -169,6 +199,26 @@ public class OInterceptorClassVisitor extends ClassVisitor {
 			mv.visitInsn(Opcodes.ACONST_NULL);
 			mv.visitInsn(Opcodes.ARETURN);
 		}
+		
+		Label l1 = new Label();
+		mv.visitLocalVariable("this", reflector.getClazzDescriptor(), null, l0, l1, 0);
+		mv.visitMaxs(1, 1);
+		mv.visitEnd();
+	}
+	
+	/**
+	 * Generates code:
+	 * public Result _asBeforeType() {
+	 * 	return _asBeforeType;
+	 * }
+	 */
+	public void createBeforeTypeMethod() {
+		MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC, "_asBeforeType", "()Ljava/lang/String;", null, null);
+		
+		Label l0 = new Label();
+		mv.visitLabel(l0);
+		mv.visitFieldInsn(Opcodes.GETSTATIC, reflector.getClazzInternalName(), "_asBeforeType", "Ljava/lang/String;");
+		mv.visitInsn(Opcodes.ARETURN);
 		
 		Label l1 = new Label();
 		mv.visitLocalVariable("this", reflector.getClazzDescriptor(), null, l0, l1, 0);

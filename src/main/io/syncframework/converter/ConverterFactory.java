@@ -86,7 +86,7 @@ public class ConverterFactory {
 			try {
 				ParameterizedType ptt = (ParameterizedType)args[0];
 				Class<?> c = (Class<?>)ptt.getRawType();
-				converters.put(c, (Converter<?>)clazz.newInstance());
+				converters.put(c, (Converter<?>)clazz.getDeclaredConstructor().newInstance());
 			}
 			catch(Exception e) {
 				e.printStackTrace();

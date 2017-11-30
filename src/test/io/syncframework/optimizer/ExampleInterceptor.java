@@ -21,7 +21,7 @@ public class ExampleInterceptor {
 	@Parameter(converter=SimpleDateConverter.class)
 	private Date date;
 	
-	@Action
+	@Action(type="text/html")
 	public Result before() {
 		return ResultFactory.render("/interceptor.ftl");
 	}

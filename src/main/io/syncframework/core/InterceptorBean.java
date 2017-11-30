@@ -41,6 +41,7 @@ import io.syncframework.optimizer.OInterceptor;
 public class InterceptorBean implements ResponseBean {
 	private static Logger log = LoggerFactory.getLogger(InterceptorBean.class);
 	private Application application;
+	private String contentType;
 	private OInterceptor interceptor;
 	private CookieContext cookieContext;
 	private ErrorContext errorContext;
@@ -63,6 +64,8 @@ public class InterceptorBean implements ResponseBean {
 		if(response == null)
 			throw new IllegalArgumentException("invalid response argument");
 
+		contentType = interceptor._asAfterType();
+		
 		errorContext = request.getSession().getErrorContext();
 		cookieContext = request.getCookieContext();
 		requestContext = request.getRequestContext();
@@ -106,7 +109,7 @@ public class InterceptorBean implements ResponseBean {
 				Converter<?> converter = application.getConverterFactory().getConverter(type);
 				Class<?> converterClazz = interceptor._asParameterConverter(name);
 				if(converterClazz != null) {
-					try { converter = (Converter<?>)converterClazz.newInstance(); }
+					try { converter = (Converter<?>)converterClazz.getDeclaredConstructor().newInstance(); }
 					catch(Exception e) {
 						throw new InterceptorBeanException(e, this);
 					}
@@ -174,6 +177,8 @@ public class InterceptorBean implements ResponseBean {
 			throw new IllegalArgumentException("invalid request argument");
 		if(response == null)
 			throw new IllegalArgumentException("invalid response argument");
+		
+		contentType = interceptor._asBeforeType();
 
 		errorContext = request.getSession().getErrorContext();
 		cookieContext = request.getCookieContext();
@@ -218,7 +223,7 @@ public class InterceptorBean implements ResponseBean {
 				Converter<?> converter = application.getConverterFactory().getConverter(type);
 				Class<?> converterClazz = interceptor._asParameterConverter(name);
 				if(converterClazz != null) {
-					try { converter = (Converter<?>)converterClazz.newInstance(); }
+					try { converter = (Converter<?>)converterClazz.getDeclaredConstructor().newInstance(); }
 					catch(Exception e) {
 						throw new InterceptorBeanException(e, this);
 					}
@@ -297,6 +302,14 @@ public class InterceptorBean implements ResponseBean {
 
 	public ApplicationContext getApplicationContext() {
 		return application.getContext();
+	}
+
+	public String getContentType() {
+		return contentType;
+	}
+
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
 	}
 
 	public CookieContext getCookieContext() {

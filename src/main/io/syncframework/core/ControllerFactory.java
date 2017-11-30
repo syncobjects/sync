@@ -61,7 +61,7 @@ public class ControllerFactory {
 		}
 		
 		Class<?> clazz = map.get(urlPattern);
-		OController controller = (OController)clazz.newInstance();
+		OController controller = (OController)clazz.getDeclaredConstructor().newInstance();
 		
 		String action = null;
 		if(controller._asActionIsDefined(actionName))
@@ -100,7 +100,7 @@ public class ControllerFactory {
 		if(clazz.isAssignableFrom(OController.class))
 			throw new IllegalArgumentException(clazz+" is not a valid @Controller");
 		
-		OController controller = (OController)clazz.newInstance();
+		OController controller = (OController)clazz.getDeclaredConstructor().newInstance();
 		String url = controller._asUrl();
 		if(log.isTraceEnabled())
 			log.trace("@Controller "+controller.getClass().getName()+" bound to URL pattern: "+url);

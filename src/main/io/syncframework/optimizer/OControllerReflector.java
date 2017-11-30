@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 SyncObjects Ltda.
+ * Copyright 2012-2017 SyncObjects Ltda.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,12 +53,13 @@ public class OControllerReflector implements Reflector {
 	private Class<?> clazz;
 	private String clazzInternalName;
 	private String clazzDescriptor;
-	private Map<String,Method> actions = new LinkedHashMap<String,Method>();
-	private Map<String,Class<?>[]> interceptors = new LinkedHashMap<String,Class<?>[]>();
-	private Map<String,Class<?>> parameters = new LinkedHashMap<String,Class<?>>();
-	private Map<String,Method> getters = new LinkedHashMap<String,Method>();
-	private Map<String,Method> setters = new LinkedHashMap<String,Method>();
-	private Map<String,Class<?>> converters = new LinkedHashMap<String,Class<?>>();
+	private final Map<String,Method> actions = new LinkedHashMap<String,Method>();
+	private final Map<String,String> actionsType = new LinkedHashMap<String,String>();
+	private final Map<String,Class<?>[]> interceptors = new LinkedHashMap<String,Class<?>[]>();
+	private final Map<String,Class<?>> parameters = new LinkedHashMap<String,Class<?>>();
+	private final Map<String,Method> getters = new LinkedHashMap<String,Method>();
+	private final Map<String,Method> setters = new LinkedHashMap<String,Method>();
+	private final Map<String,Class<?>> converters = new LinkedHashMap<String,Class<?>>();
 	private String url;
 	private String applicationContext;
 	private String cookieContext;
@@ -208,8 +209,14 @@ public class OControllerReflector implements Reflector {
 			if(!method.isAnnotationPresent(Action.class))
 				continue;
 			
-			// check whether intercepted by @Interceptor classes
 			Action a = method.getAnnotation(Action.class);
+			
+			//
+			// Action Content Type (type)...
+			//
+			actionsType.put(method.getName(), a.type());
+			 
+			// check whether intercepted by @Interceptor classes
 			List<Class<?>> interceptorsOnly = new LinkedList<Class<?>>();
 			Class<?> interceptors[] = a.interceptedBy();
 			for(int i=0; i < interceptors.length; i++) {
@@ -239,6 +246,9 @@ public class OControllerReflector implements Reflector {
 
 	public Map<String, Method> getActions() {
 		return actions;
+	}
+	public Map<String, String> getActionsType() {
+		return actionsType;
 	}
 	public Map<String, Class<?>[]> getInterceptors() {
 		return interceptors;

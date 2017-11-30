@@ -15,7 +15,6 @@ import io.syncframework.api.RequestContext;
 import io.syncframework.api.Result;
 import io.syncframework.api.ResultFactory;
 import io.syncframework.api.SessionContext;
-import io.syncframework.optimizer.OInterceptor;
 
 @Interceptor
 public class ExampleOptimizedInterceptor implements OInterceptor {
@@ -27,7 +26,7 @@ public class ExampleOptimizedInterceptor implements OInterceptor {
 	@Parameter(converter=SimpleDateConverter.class)
 	private Date date;
 	
-	@Action
+	@Action(type="text/html")
 	public Result before() {
 		return ResultFactory.render("/interceptor.ftl");
 	}
@@ -80,11 +79,16 @@ public class ExampleOptimizedInterceptor implements OInterceptor {
 	//
 	// ASM generated code.
 	//
+	private static String _asAfterType;
+	private static String _asBeforeType;
 	private static Map<String, Class<?>> _asConverters;
 	private static Map<String, Class<?>> _asParameters;
 	
 	static {
-		try {				
+		try {
+			_asAfterType = "text/html";
+			_asBeforeType = "text/html";
+			
 			_asParameters = new HashMap<String, Class<?>>();
 			_asParameters.put("name", String.class);
 			_asParameters.put("date", Date.class);
@@ -98,14 +102,24 @@ public class ExampleOptimizedInterceptor implements OInterceptor {
 	}
 	
 	@Override
+	public Result _asAfter() {
+		return after();
+	}
+	
+	@Override
+	public String _asAfterType() {
+		return _asAfterType;
+	}
+	
+	@Override
 	public Result _asBefore() {
 		// return before();
 		return null;
 	}
 	
 	@Override
-	public Result _asAfter() {
-		return after();
+	public String _asBeforeType() {
+		return _asBeforeType;
 	}
 	
 	@Override

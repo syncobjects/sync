@@ -27,6 +27,7 @@ import org.objectweb.asm.Type;
  * 	try {
  * 		_asActions = new HashMap<String, Boolean>();
  *		_asActions.put("main", true);
+ *		_asActionsType.put("main", "text/html");
  *		_asInterceptors = new HashMap<String, Class<?>[]>();
  *		_asInterceptors.put("upload", new Class<?>[] { LoginInterceptor.class, DummyInterceptor.class });
  *		_asInterceptors.put("save", new Class<?>[] { LoginInterceptor.class });
@@ -86,6 +87,26 @@ public class OControllerStaticMethodVisitor extends MethodVisitor {
 			mv.visitLdcInsn(name);
 			mv.visitInsn(Opcodes.ICONST_1);
 			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
+			mv.visitInsn(Opcodes.POP);
+		}
+	    /*
+		 * _asActionsType = new HashMap<String,String>();
+		 */
+		{
+			Label l = new Label();
+			mv.visitLabel(l);
+			mv.visitTypeInsn(Opcodes.NEW, "java/util/HashMap");
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false);
+			mv.visitFieldInsn(Opcodes.PUTSTATIC, reflector.getClazzInternalName(), "_asActionsType", "Ljava/util/Map;");
+		}
+		for(String name: reflector.getActions().keySet()) {
+			Label l = new Label();
+			mv.visitLabel(l);
+			mv.visitFieldInsn(Opcodes.GETSTATIC, reflector.getClazzInternalName(), "_asActionsType", "Ljava/util/Map;");
+			mv.visitLdcInsn(name);
+			mv.visitLdcInsn(reflector.getActionsType().get(name));
 			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
 			mv.visitInsn(Opcodes.POP);
 		}

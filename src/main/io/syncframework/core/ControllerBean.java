@@ -42,6 +42,7 @@ public class ControllerBean implements ResponseBean {
 	private static Logger log = LoggerFactory.getLogger(ControllerBean.class);
 	private String action;
 	private Application application;
+	private String contentType;
 	private OController controller;
 	private CookieContext cookieContext;
 	private ErrorContext errorContext;
@@ -73,6 +74,8 @@ public class ControllerBean implements ResponseBean {
 
 		if(log.isDebugEnabled())
 			log.debug("@Action "+this+"."+action+"()");
+		
+		contentType = controller._asActionType(action);
 
 		Session session = request.getSession();
 
@@ -119,7 +122,7 @@ public class ControllerBean implements ResponseBean {
 				Converter<?> converter = application.getConverterFactory().getConverter(type);
 				Class<?> converterClazz = controller._asParameterConverter(name);
 				if(converterClazz != null) {
-					try { converter = (Converter<?>)converterClazz.newInstance(); }
+					try { converter = (Converter<?>)converterClazz.getDeclaredConstructor().newInstance(); }
 					catch(Exception e) {
 						throw new ControllerBeanException(e, this);
 					}
@@ -204,6 +207,14 @@ public class ControllerBean implements ResponseBean {
 
 	public void setApplication(Application application) {
 		this.application = application;
+	}
+
+	public String getContentType() {
+		return contentType;
+	}
+
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
 	}
 
 	public OController getController() {

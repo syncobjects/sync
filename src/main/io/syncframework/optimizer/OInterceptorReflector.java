@@ -26,6 +26,7 @@ import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.syncframework.api.Action;
 import io.syncframework.api.ApplicationContext;
 import io.syncframework.api.Converter;
 import io.syncframework.api.CookieContext;
@@ -47,7 +48,9 @@ import io.syncframework.util.StringUtils;
 public class OInterceptorReflector implements Reflector {
 	private static final Logger log = LoggerFactory.getLogger(OInterceptorReflector.class);
 	private Method after;
+	private String afterType;
 	private Method before;
+	private String beforeType;
 	private Class<?> clazz;
 	private String clazzInternalName;
 	private String clazzDescriptor;
@@ -197,6 +200,13 @@ public class OInterceptorReflector implements Reflector {
 			if(method.getReturnType() != Result.class || method.getParameterTypes().length != 0) {
 				throw new ReflectorException("@Action "+clazz.getName()+"."+method.getName()+"() not returning Result object");
 			}
+			
+			afterType = "text/html";
+			if(method.isAnnotationPresent(Action.class)) {
+				Action a = method.getAnnotation(Action.class);
+				afterType = a.type();
+			}
+			
 			after = method;
 			if(log.isTraceEnabled()) {
 				log.trace("@Action "+clazz.getName()+"."+after.getName()+"() loaded");
@@ -214,6 +224,13 @@ public class OInterceptorReflector implements Reflector {
 			if(method.getReturnType() != Result.class || method.getParameterTypes().length != 0) {
 				throw new ReflectorException("@Action "+clazz.getName()+"."+method.getName()+"() not returning Result object");
 			}
+			
+			beforeType = "text/html";
+			if(method.isAnnotationPresent(Action.class)) {
+				Action a = method.getAnnotation(Action.class);
+				beforeType = a.type();
+			}
+			
 			before = method;
 			if(log.isTraceEnabled()) {
 				log.trace("@Action "+clazz.getName()+"."+before.getName()+"() loaded");
@@ -227,8 +244,14 @@ public class OInterceptorReflector implements Reflector {
 	public Method getAfter() {
 		return after;
 	}
+	public String getAfterType() {
+		return afterType;
+	}
 	public Method getBefore() {
 		return before;
+	}
+	public String getBeforeType() {
+		return beforeType;
 	}
 	public Class<?> getClazz() {
 		return clazz;

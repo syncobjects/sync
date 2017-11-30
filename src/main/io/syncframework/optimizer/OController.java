@@ -77,4 +77,8 @@ public interface OController {
 	 * Utilized to return the interceptors
 	 */
 	public Class<?>[] _asActionInterceptors(String name);
+	/**
+	 * Shortcut to Content-Type header... 
+	 */
+	public String _asActionType(String name);
 }

@@ -12,8 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.syncframework.api.ApplicationContext;
-import io.syncframework.optimizer.ClassOptimizer;
-import io.syncframework.optimizer.OInitializer;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class InitializerOptimizerTest {
@@ -41,7 +39,7 @@ public class InitializerOptimizerTest {
 		Assert.assertTrue(optimizedInitializerClazz != null);
 		Assert.assertTrue(OInitializer.class.isAssignableFrom(optimizedInitializerClazz));
 		
-		initializer = (OInitializer)optimizedInitializerClazz.newInstance();
+		initializer = (OInitializer)optimizedInitializerClazz.getDeclaredConstructor().newInstance();
 	}
 	
 	@Test

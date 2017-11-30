@@ -76,9 +76,16 @@ public class OControllerClassVisitor extends ClassVisitor {
 		// private static Map<String,Boolean> _asActions;
 		//
 		{
-			// private static Ljava/util/Map; _asActions
 			FieldVisitor fv = cv.visitField(Opcodes.ACC_PRIVATE + Opcodes.ACC_STATIC, "_asActions", "Ljava/util/Map;", 
 					"Ljava/util/Map<Ljava/lang/String;Ljava/lang/Boolean;>;", null);
+			fv.visitEnd();
+		}
+		//
+		// private static Map<String,String> _asActionsType;
+		//
+		{
+			FieldVisitor fv = cv.visitField(Opcodes.ACC_PRIVATE + Opcodes.ACC_STATIC, "_asActionsType", "Ljava/util/Map;", 
+					"Ljava/util/Map<Ljava/lang/String;Ljava/lang/String;>;", null);
 			fv.visitEnd();
 		}
 		//
@@ -129,13 +136,40 @@ public class OControllerClassVisitor extends ClassVisitor {
 		createParametersGetterMethod();
 		createParameterConverterMethod();
 		
+		createActionType();
 		createActionMethod();
 		createActionInterceptorsMethod();
 		createActionIsDefinedMethod();
 	}
 	
 	/**
-	 * Generates _asActions() method as following:
+	 * Generates code:
+	 * public String _asActionType(String name) {
+	 * 		return _asActionsType.get(name);
+	 * }
+	 */
+	private void createActionType() {
+		MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC, "_asActionType", "(Ljava/lang/String;)Ljava/lang/String;", null, null);
+		
+		Label l0 = new Label();
+		Label l1 = new Label();
+		mv.visitLabel(l0);
+		mv.visitFieldInsn(Opcodes.GETSTATIC, reflector.getClazzInternalName(), "_asActionsType", "Ljava/util/Map;");
+		mv.visitVarInsn(Opcodes.ALOAD, 1);
+		mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
+		mv.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/String");
+		mv.visitInsn(Opcodes.ARETURN);
+		
+		mv.visitLabel(l1);
+		mv.visitLocalVariable("this", reflector.getClazzDescriptor(), null, l0, l1, 0);
+		mv.visitLocalVariable("name", "Ljava/lang/String;", null, l0, l1, 1);
+		mv.visitMaxs(2, 2);
+		
+		mv.visitEnd();
+	}
+	
+	/**
+	 * Generates _asActions() method with the following body:
 	 * 
 	 * if(name.equals("upload"))
 	 * 	return upload();
