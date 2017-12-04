@@ -137,9 +137,9 @@ public class Application {
 		domains.add(name);
 		map.put(name, name);
 		// parsing information from the configuration file
-		String domainAliases = config.getProperty(ApplicationConfig.DOMAINS_KEY).trim();
+		String domainAliases = config.getProperty(ApplicationConfig.DOMAINS_KEY);
 		if(domainAliases != null) {
-			String ds[] = domainAliases.split(",");
+			String ds[] = domainAliases.trim().split(",");
 			for(int i=0 ; i < ds.length; i++) {
 				// domain name and aliases shall be always lowered case so facilitates case sensitive searches
 				// white spaces also removed from the before and after
