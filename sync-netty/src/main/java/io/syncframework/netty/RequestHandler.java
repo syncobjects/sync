@@ -81,6 +81,7 @@ import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder.ErrorDataDec
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData.HttpDataType;
 import io.netty.util.CharsetUtil;
+import io.netty.util.ReferenceCountUtil;
 import io.syncframework.api.ApplicationContext;
 import io.syncframework.api.FileResult;
 import io.syncframework.api.RequestContext;
@@ -132,10 +133,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 		if(log.isTraceEnabled())
 			log.trace("channelInactive()");
-		if (decoder != null) {
-			decoder.cleanFiles();
-			decoder.destroy();
-		}
 		reset();
 	}
 	
@@ -814,13 +811,9 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private void reset() {
 		if(log.isTraceEnabled())
 			log.trace("reset()");
-		request = null;
-		
 		// destroy the decoder to release all resources
-		if(decoder != null) {
-			decoder.destroy();
-			decoder = null;
-		}
+		ReferenceCountUtil.release(decoder);
+		ReferenceCountUtil.release(request);
 	}
 
 	@Override
