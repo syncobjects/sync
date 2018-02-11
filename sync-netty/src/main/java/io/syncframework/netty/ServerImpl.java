@@ -32,9 +32,24 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
+import io.netty.channel.kqueue.KQueue;
+import io.netty.channel.kqueue.KQueueEventLoopGroup;
+import io.netty.channel.kqueue.KQueueServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.util.ResourceLeakDetector;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.syncframework.Globals;
 import io.syncframework.core.Application;
 import io.syncframework.core.ApplicationManager;
@@ -188,13 +203,41 @@ public class ServerImpl implements Server {
 		if(log.isInfoEnabled())
 			log.info("{} starting network", this);
 
-		EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-		EventLoopGroup workerGroup = new NioEventLoopGroup();
+		EventLoopGroup bossGroup = null;
+		EventLoopGroup workerGroup = null;
+		EventExecutorGroup executorGroup = new DefaultEventExecutorGroup(10);
 		try {
+			ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED);
 			ServerBootstrap b = new ServerBootstrap();
+			b.option(ChannelOption.SO_BACKLOG, 1024);
+			b.option(ChannelOption.SO_REUSEADDR, true);
+			if(Epoll.isAvailable()) {
+				bossGroup = new EpollEventLoopGroup();
+				workerGroup = new EpollEventLoopGroup();
+				b.channel(EpollServerSocketChannel.class);
+			}
+			else if(KQueue.isAvailable()) {
+				bossGroup = new KQueueEventLoopGroup();
+				workerGroup = new KQueueEventLoopGroup();
+				b.channel(KQueueServerSocketChannel.class);
+			}
+			else {
+				bossGroup = new NioEventLoopGroup();
+				workerGroup = new NioEventLoopGroup();
+				b.channel(NioServerSocketChannel.class);
+			}
 			b.group(bossGroup, workerGroup);
-			b.channel(NioServerSocketChannel.class);
-			b.childHandler(new ServerInitializer(this));
+			
+			// b.childHandler(new ServerInitializer(this, executorsGroup));
+			b.childHandler(new ChannelInitializer<SocketChannel>() {
+				@Override
+				public void initChannel(SocketChannel ch) throws Exception {
+					ChannelPipeline p = ch.pipeline();
+					p.addLast("decoder", new HttpRequestDecoder());
+					p.addLast("encoder", new HttpResponseEncoder());
+					p.addLast(executorGroup, "handler", new RequestHandler(ServerImpl.this));
+				}
+			});
 			try {
 				ChannelFuture chf = null;
 				if(config.getListenAddress() != null)
@@ -211,8 +254,12 @@ public class ServerImpl implements Server {
 				System.exit(1);
 			}
 		} finally {
-			bossGroup.shutdownGracefully();
-			workerGroup.shutdownGracefully();
+			if(executorGroup != null)
+				executorGroup.shutdownGracefully();
+			if(bossGroup != null)
+				bossGroup.shutdownGracefully();
+			if(workerGroup != null)
+				workerGroup.shutdownGracefully();
 		}
 	}
 

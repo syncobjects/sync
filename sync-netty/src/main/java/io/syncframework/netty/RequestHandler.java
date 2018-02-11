@@ -16,12 +16,6 @@
 package io.syncframework.netty;
 
 import static io.netty.buffer.Unpooled.copiedBuffer;
-import static io.netty.handler.codec.http.HttpHeaderNames.CACHE_CONTROL;
-import static io.netty.handler.codec.http.HttpHeaderNames.CONNECTION;
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpHeaderNames.DATE;
-import static io.netty.handler.codec.http.HttpHeaderNames.EXPIRES;
-import static io.netty.handler.codec.http.HttpHeaderNames.LAST_MODIFIED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
@@ -33,7 +27,6 @@ import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
-import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -113,9 +106,11 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
 	private static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
 	private static final int HTTP_CACHE_SECONDS = 60;
-	private static String charset;
+	// private static String charset;
+	private ChannelHandlerContext ctx;
 	private Application application;
 	private String domain;
+	private boolean keepAlive;
 	private Server server;
 	private HttpRequest request;
 	private final RequestWrapper requestWrapper = new RequestWrapper();
@@ -125,8 +120,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	
 	public RequestHandler(Server server) {
 		this.server = server;
-		// default @Server charset
-		charset = Charset.defaultCharset().name();
+		this.keepAlive = false;
 	}
 
 	@Override
@@ -137,10 +131,23 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	}
 	
 	@Override
+	public void channelReadComplete(ChannelHandlerContext ctx) {
+		if(log.isTraceEnabled())
+			log.trace("channelReadComplete");
+		ctx.flush();
+	}
+	
+	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg)
 			throws Exception {
+		this.ctx = ctx;
+		
 		if(msg instanceof HttpRequest) {
 			this.request = (HttpRequest)msg;
+			
+			if(HttpUtil.isKeepAlive(this.request)) {
+				keepAlive = true;
+			}
 			
 			//
 			// Verify application's domain. This is a common code to both static and dynamic request handlers... 
@@ -374,7 +381,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		String path = getUriPath(request.uri());
 		if(path == null) {
-			// send file not found
+			// file not found
 			if(log.isInfoEnabled())
 				log.info("{}: no path found for request uri: {}", application, request.uri());
 			return false;
@@ -524,14 +531,13 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		// Date header
 		Calendar time = new GregorianCalendar();
-		response.headers().set(DATE, dateFormatter.format(time.getTime()));
+		response.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
 
 		// Add cache headers
 		time.add(Calendar.SECOND, HTTP_CACHE_SECONDS);
-		response.headers().set(EXPIRES, dateFormatter.format(time.getTime()));
-		response.headers().set(CACHE_CONTROL, "private, max-age=" + HTTP_CACHE_SECONDS);
-		response.headers().set(
-				LAST_MODIFIED, dateFormatter.format(new Date(fileToCache.lastModified())));
+		response.headers().set(HttpHeaderNames.EXPIRES, dateFormatter.format(time.getTime()));
+		response.headers().set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + HTTP_CACHE_SECONDS);
+		response.headers().set(HttpHeaderNames.LAST_MODIFIED, dateFormatter.format(new Date(fileToCache.lastModified())));
 	}
 
 	private boolean sendResponse(ChannelHandlerContext ctx, Response response) throws Exception {
@@ -562,7 +568,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		httpResponse.headers().set(HttpHeaderNames.SERVER, "Sync-AS");
 		// default content-type header... likely to be overwritten by the Result Content-Type header...
-		httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset="+charset);
+		httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8");
 		httpResponse.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
 		httpResponse.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, buf.readableBytes());
 		
@@ -582,7 +588,6 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		// Write the response.
 		ctx.channel().writeAndFlush(httpResponse).addListener(ChannelFutureListener.CLOSE);
-		reset();
 		
 		return true;
 	}
@@ -653,9 +658,9 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		HttpResponse httpResponse = new DefaultHttpResponse(HTTP_1_1, OK);
 		HttpUtil.setContentLength(httpResponse, fileLength);
-		httpResponse.headers().set(CONTENT_TYPE, MimeUtils.getContentType(file));
+		httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, MimeUtils.getContentType(file));
 		setDateAndCacheHeaders(httpResponse, file);
-		httpResponse.headers().set(CONNECTION, HttpHeaderValues.CLOSE);
+		httpResponse.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
 		//
 		// if response has declared specific Headers, then this may or may not override the default headers
 		// declared above.
@@ -719,10 +724,16 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
 		FullHttpResponse response = new DefaultFullHttpResponse(
 				HTTP_1_1, status, Unpooled.copiedBuffer("Failure: " + status + "\r\n", CharsetUtil.UTF_8));
-		response.headers().set(CONTENT_TYPE, "text/plain; charset="+charset);
+		response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
+		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
+		
 		// Close the connection as soon as the error message is sent.
-		ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-		reset();
+		if(keepAlive) {
+			ctx.write(response);
+		}
+		else {
+			ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+		}
 	}
 
 	private void sendException(ChannelHandlerContext ctx, Exception e) {
@@ -768,10 +779,13 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		ByteBuf buf = copiedBuffer(sb.toString().getBytes());
 
 		FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR, buf);
-		response.headers().set(CONTENT_TYPE, "text/html; charset="+charset);
+		response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8");
+		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
 
-		ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-		reset();
+		if(keepAlive)
+			ctx.write(response);
+		else
+			ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
 	}
 
 	private static String getDomain(HttpRequest request) {
@@ -812,8 +826,12 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		if(log.isTraceEnabled())
 			log.trace("reset()");
 		// destroy the decoder to release all resources
-		ReferenceCountUtil.release(decoder);
-		ReferenceCountUtil.release(request);
+		if(decoder != null)
+			ReferenceCountUtil.release(decoder);
+		if(request != null)
+			ReferenceCountUtil.release(request);
+		if(ctx != null)
+			ReferenceCountUtil.release(ctx);
 	}
 
 	@Override

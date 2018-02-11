@@ -20,6 +20,8 @@ logs
 !/sync-core
 /sync-core/*.class
 /sync-core/target
+!/sync-distribution
+/sync-distribution/target
 !/sync-netty
 /sync-netty/target
 !/sync-startup

@@ -20,9 +20,9 @@ import io.syncframework.api.SessionContext;
 /**
  * @author dfroz
  */
-public class SessionBogus extends Session {
+public class SessionVoid extends Session {
 	private static final long serialVersionUID = 4501346595414405798L;
-	private static final SessionContext context = new SessionContextBogus();
+	private static final SessionContext context = new SessionContextVoid();
 	
 	@Override
 	public SessionContext getSessionContext() {
@@ -30,7 +30,7 @@ public class SessionBogus extends Session {
 	}
 }
 
-class SessionContextBogus extends SessionContext {
+class SessionContextVoid extends SessionContext {
 	private static final long serialVersionUID = -432846513263222879L;
 	
 	@Override

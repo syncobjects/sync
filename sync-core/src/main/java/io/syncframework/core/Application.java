@@ -218,7 +218,7 @@ public class Application {
 		// initiating session factory
 		//
 		if(config.getSessionFactory().equals("disabled")) {
-			sessionFactory = new SessionFactoryBogusImpl();
+			sessionFactory = new SessionFactoryVoidImpl();
 		}
 		else if(config.getSessionFactory().equals("secure")) {
 			sessionFactory = new SessionFactorySecureImpl();

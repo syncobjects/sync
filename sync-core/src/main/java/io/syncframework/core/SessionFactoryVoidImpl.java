@@ -23,10 +23,10 @@ package io.syncframework.core;
  * @author dfroz
  *
  */
-public class SessionFactoryBogusImpl implements SessionFactory {
-	private static final Session bogus = new SessionBogus();
+public class SessionFactoryVoidImpl implements SessionFactory {
+	private static final Session bogus = new SessionVoid();
 	
-	public SessionFactoryBogusImpl() {
+	public SessionFactoryVoidImpl() {
 		bogus.setRecent(false);
 		bogus.setCreationTime(System.currentTimeMillis());
 	}

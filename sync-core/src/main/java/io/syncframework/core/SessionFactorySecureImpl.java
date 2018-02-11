@@ -32,7 +32,7 @@ import io.syncframework.api.RequestContext;
  */
 public class SessionFactorySecureImpl implements SessionFactory {
 	private static final Logger log = LoggerFactory.getLogger(SessionFactorySecureImpl.class);
-	private static final Session bogus = new SessionBogus();
+	private static final Session bogus = new SessionVoid();
 	private ApplicationConfig config;
 	private final StringBuffer buffer = new StringBuffer();
 	private final Map<String,Session> sessions = new ConcurrentHashMap<String, Session>();
