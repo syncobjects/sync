@@ -117,7 +117,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private final Response response = new Response();
 	private HttpPostRequestDecoder decoder;
 	private static final HttpDataFactory factory = new DefaultHttpDataFactory(8 * 1024);
-	
+
 	public RequestHandler(Server server) {
 		this.server = server;
 		this.keepAlive = false;
@@ -129,26 +129,26 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 			log.trace("channelInactive()");
 		reset();
 	}
-	
+
 	@Override
 	public void channelReadComplete(ChannelHandlerContext ctx) {
 		if(log.isTraceEnabled())
 			log.trace("channelReadComplete");
 		ctx.flush();
 	}
-	
+
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg)
 			throws Exception {
 		this.ctx = ctx;
-		
+
 		if(msg instanceof HttpRequest) {
 			this.request = (HttpRequest)msg;
-			
+
 			if(HttpUtil.isKeepAlive(this.request)) {
 				keepAlive = true;
 			}
-			
+
 			//
 			// Verify application's domain. This is a common code to both static and dynamic request handlers... 
 			// This may save CPU cycles if there is no domain responsible for the request.
@@ -180,7 +180,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 					requestWrapper.getRequestContext().put(RequestContext.METHOD, this.request.method().asciiName());
 					requestWrapper.getRequestContext().put(RequestContext.URL, this.request.uri());
 					requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, this.request.headers().getAsString("X-SAS-Client"));
-					
+
 					if(handleRequestDynamically(ctx)) {
 						// no need to continue as the action has been taken by the application
 						return;
@@ -191,7 +191,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 						// no need to continue as the static file has been served
 						return;
 					}
-					
+
 					requestWrapper.setRequest(this.request);
 					requestWrapper.getRequestContext().put(RequestContext.DOMAIN, domain);
 					requestWrapper.getRequestContext().put(RequestContext.METHOD, this.request.method().asciiName());
@@ -199,13 +199,13 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 					// We already verified the X-SAS-Client header and it is not available...
 					InetSocketAddress isa = (InetSocketAddress)ctx.channel().remoteAddress();
 					requestWrapper.getRequestContext().put(RequestContext.REMOTE_ADDRESS, isa.getHostString());
-					
+
 					if(handleRequestDynamically(ctx)) {
 						// no need to continue as the page has been delivered
 						return;
 					}
 				}
-				
+
 				sendFileNotFound(ctx);
 				return;
 			}
@@ -248,13 +248,13 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				if (chunk instanceof LastHttpContent) {
 					if(log.isTraceEnabled())
 						log.trace("last http request chunk identified; handling request...");
-					
+
 					// this point forward we translate the request into sas.Request...
 					requestWrapper.setRequest(this.request);
 					requestWrapper.getRequestContext().put(RequestContext.DOMAIN, domain);
 					requestWrapper.getRequestContext().put(RequestContext.METHOD, this.request.method().asciiName());
 					requestWrapper.getRequestContext().put(RequestContext.URL, this.request.uri());
-					
+
 					boolean xsc = false;
 					if(server.config().getTrustedProxyMode()) {
 						xsc = this.request.headers().getAsString("X-SAS-Client") != null ? true: false;
@@ -282,6 +282,17 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 			sendFileNotFound(ctx);
 			return;
 		}
+	}
+
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+		if(!ctx.channel().isOpen()) {
+			if(log.isTraceEnabled())
+				log.trace("client disconnected... cleaning up resources");
+			ctx.disconnect();
+			return;
+		}
+		sendException(ctx, cause);
 	}
 
 	/**
@@ -346,7 +357,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 										throw new RuntimeException("failed to place the upload file under the directory: "+tmpDirectoryPath);
 									}
 								}
-								
+
 								io.syncframework.api.FileUpload fu = new io.syncframework.api.FileUpload();
 								fu.setName(fileUpload.getFilename());
 								fu.setType(fileUpload.getContentType());
@@ -374,7 +385,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 	private boolean handleRequestStatically(ChannelHandlerContext ctx) throws Exception {
 		if(log.isTraceEnabled())
 			log.trace("handling request statically");
-		
+
 		if(log.isTraceEnabled()) {
 			log.trace("handling request to: {}:{}", application, request.uri());
 		}
@@ -390,139 +401,132 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		File file = new File(application.getConfig().getPublicDirectory(), path);
 		response.setApplication(application);
 		response.setFile(file);
-		
+
 		return sendFile(ctx, response);
 	}
 
-	private boolean handleRequestDynamically(ChannelHandlerContext ctx) {
+	private boolean handleRequestDynamically(ChannelHandlerContext ctx) throws Exception {
 		if(log.isTraceEnabled())
 			log.trace("handling request dynamically");
 
-		try {
-			Thread.currentThread().setContextClassLoader(application.getClassLoader());
+		Thread.currentThread().setContextClassLoader(application.getClassLoader());
 
-			final ControllerBean controller = new ControllerBean();
-			ControllerFactory controllerFactory = application.getControllerFactory();
-			if(!controllerFactory.find(controller, request.uri())) {
-				if(log.isTraceEnabled())
-					log.trace("no @Controller found to handle request: {}", request.uri());
-				// lead to not found
-				return false;
-			}
+		final ControllerBean controller = new ControllerBean();
+		ControllerFactory controllerFactory = application.getControllerFactory();
+		if(!controllerFactory.find(controller, request.uri())) {
+			if(log.isTraceEnabled())
+				log.trace("no @Controller found to handle request: {}", request.uri());
+			// lead to not found
+			return false;
+		}
 
-			SessionFactory sessionFactory = application.getSessionFactory();
-			if(sessionFactory == null) {
-				log.error("application malfunction detected; SessionFactory is null");
-				sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				return true;
-			}
+		SessionFactory sessionFactory = application.getSessionFactory();
+		if(sessionFactory == null) {
+			log.error("application malfunction detected; SessionFactory is null");
+			sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			return true;
+		}
 
-			ResponderFactory responderFactory = application.getResponderFactory();
-			if(responderFactory == null) {
-				log.error("application malfunction detected; ResponderFactory is null");
-				sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				return true;
-			}
+		ResponderFactory responderFactory = application.getResponderFactory();
+		if(responderFactory == null) {
+			log.error("application malfunction detected; ResponderFactory is null");
+			sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			return true;
+		}
 
-			Session session = sessionFactory.find(requestWrapper);
-			requestWrapper.setSession(session);
-			response.setSession(session);
-			response.setApplication(application);
+		Session session = sessionFactory.find(requestWrapper);
+		requestWrapper.setSession(session);
+		response.setSession(session);
+		response.setApplication(application);
 
-			InterceptorFactory interceptorFactory = application.getInterceptorFactory();
-			InterceptorBean interceptors[] = interceptorFactory.find(controller.interceptedBy());
-			if(interceptors != null) {
-				for(int i=0; i < interceptors.length; i++) {
+		InterceptorFactory interceptorFactory = application.getInterceptorFactory();
+		InterceptorBean interceptors[] = interceptorFactory.find(controller.interceptedBy());
+		if(interceptors != null) {
+			for(int i=0; i < interceptors.length; i++) {
+				//
+				// default action is to return null; if not null, direct to response and end the req/resp cycle
+				//
+				Result interceptorResult = interceptors[i].before(requestWrapper, response);
+				if(interceptorResult != null) {
 					//
-					// default action is to return null; if not null, direct to response and end the req/resp cycle
+					// find the responder which will handle the result. populate data using the response object.
 					//
-					Result interceptorResult = interceptors[i].before(requestWrapper, response);
-					if(interceptorResult != null) {
-						//
-						// find the responder which will handle the result. populate data using the response object.
-						//
-						Responder responder = responderFactory.find(interceptorResult);
-						if(responder == null) {
-							log.error("no responder encountered to handle result: "+interceptorResult);
-							sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-							return true;
-						}
-						responder.respond(response, interceptors[i], interceptorResult);
-						if(log.isTraceEnabled())
-							log.trace(interceptors[i]+".before() returned result: "+interceptorResult);
-						if(interceptorResult instanceof FileResult)
-							return sendFile(ctx, response);
-						else
-							return sendResponse(ctx, response);
+					Responder responder = responderFactory.find(interceptorResult);
+					if(responder == null) {
+						log.error("no responder encountered to handle result: "+interceptorResult);
+						sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+						return true;
 					}
+					responder.respond(response, interceptors[i], interceptorResult);
+					if(log.isTraceEnabled())
+						log.trace(interceptors[i]+".before() returned result: "+interceptorResult);
+					if(interceptorResult instanceof FileResult)
+						return sendFile(ctx, response);
+					else
+						return sendResponse(ctx, response);
 				}
 			}
+		}
 
-			//
-			// controller.action()
-			//
-			Result result = controller.action(requestWrapper, response);
-			if(result == null) {
-				log.error("@Controller "+controller+" has no @Action defined to handle request: "+requestWrapper.getUri());
-				// not found controller's action
-				return false;
-			}
-			if(log.isTraceEnabled())
-				log.trace(controller+" returned result: "+result);
+		//
+		// controller.action()
+		//
+		Result result = controller.action(requestWrapper, response);
+		if(result == null) {
+			log.error("@Controller "+controller+" has no @Action defined to handle request: "+requestWrapper.getUri());
+			// not found controller's action
+			return false;
+		}
+		if(log.isTraceEnabled())
+			log.trace(controller+" returned result: "+result);
 
-			// interceptors after()
-			if(interceptors != null) {
-				for(int i=0; i < interceptors.length; i++) {
+		// interceptors after()
+		if(interceptors != null) {
+			for(int i=0; i < interceptors.length; i++) {
+				//
+				// default action is to return null; if not null, direct to response and end the req/resp cycle
+				//
+				Result interceptorResult = interceptors[i].after(requestWrapper, response);
+				if(interceptorResult != null) {
 					//
-					// default action is to return null; if not null, direct to response and end the req/resp cycle
+					// find the responder which will handle the result. populate data using the response object.
 					//
-					Result interceptorResult = interceptors[i].after(requestWrapper, response);
-					if(interceptorResult != null) {
-						//
-						// find the responder which will handle the result. populate data using the response object.
-						//
-						Responder responder = responderFactory.find(interceptorResult);
-						if(responder == null) {
-							log.error("no responder encountered to handle result: "+interceptorResult);
-							sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-							return true;
-						}
-						if(log.isTraceEnabled())
-							log.trace(interceptors[i]+".after() returned result: "+interceptorResult);
-						responder.respond(response, interceptors[i], interceptorResult);
-						if(interceptorResult instanceof FileResult)
-							return sendFile(ctx, response);
-						else
-							return sendResponse(ctx, response);
+					Responder responder = responderFactory.find(interceptorResult);
+					if(responder == null) {
+						log.error("no responder encountered to handle result: "+interceptorResult);
+						sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+						return true;
 					}
+					if(log.isTraceEnabled())
+						log.trace(interceptors[i]+".after() returned result: "+interceptorResult);
+					responder.respond(response, interceptors[i], interceptorResult);
+					if(interceptorResult instanceof FileResult)
+						return sendFile(ctx, response);
+					else
+						return sendResponse(ctx, response);
 				}
 			}
+		}
 
-			//
-			// find the responder which will handle the result. populate data using the response object.
-			//
-			Responder responder = responderFactory.find(result);
-			if(responder == null) {
-				log.error("no responder encountered to handle result: "+result);
-				sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-				return true;
-			}
-			
-			responder.respond(response, controller, result);
-			
-			if(log.isTraceEnabled())
-				log.trace("{}: {} delivered response: {}", application, responder, result);
-			
-			if(result instanceof FileResult)
-				return sendFile(ctx, response);
-			else
-				return sendResponse(ctx, response);
-			
+		//
+		// find the responder which will handle the result. populate data using the response object.
+		//
+		Responder responder = responderFactory.find(result);
+		if(responder == null) {
+			log.error("no responder encountered to handle result: "+result);
+			sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+			return true;
 		}
-		catch(Exception e) {
-			sendException(ctx, e);
-		}
-		return true;
+
+		responder.respond(response, controller, result);
+
+		if(log.isTraceEnabled())
+			log.trace("{}: {} delivered response: {}", application, responder, result);
+
+		if(result instanceof FileResult)
+			return sendFile(ctx, response);
+		else
+			return sendResponse(ctx, response);
 	}
 
 	private static void setDateAndCacheHeaders(HttpResponse response, File fileToCache) {
@@ -571,7 +575,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html; charset=UTF-8");
 		httpResponse.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
 		httpResponse.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, buf.readableBytes());
-		
+
 		//
 		// if response has declared specific Headers, then this may or may not override the default headers
 		// declared above.
@@ -588,10 +592,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		// Write the response.
 		ctx.channel().writeAndFlush(httpResponse).addListener(ChannelFutureListener.CLOSE);
-		
+
 		return true;
 	}
-	
+
 	private boolean sendFile(ChannelHandlerContext ctx, Response response) throws Exception {
 		Application application = response.getApplication();
 		if(application == null) {
@@ -599,14 +603,14 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 			sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			return true;
 		}
-		
+
 		File file = response.getFile();
 		if(file == null) {
 			log.error("no response.file has been set");
 			sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
 			return true;
 		}
-		
+
 		if(!file.exists()) {
 			// file not found try request dynamically
 			if(log.isDebugEnabled())
@@ -710,10 +714,10 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 			}
 		});
 
-	    // Close the connection when the whole content is written out.
+		// Close the connection when the whole content is written out.
 		ctx.flush();
 		lastContentFuture.addListener(ChannelFutureListener.CLOSE);
-			
+
 		return true;
 	}
 
@@ -726,7 +730,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 				HTTP_1_1, status, Unpooled.copiedBuffer("Failure: " + status + "\r\n", CharsetUtil.UTF_8));
 		response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
 		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
-		
+
 		// Close the connection as soon as the error message is sent.
 		if(keepAlive) {
 			ctx.write(response);
@@ -736,7 +740,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 		}
 	}
 
-	private void sendException(ChannelHandlerContext ctx, Exception e) {
+	private void sendException(ChannelHandlerContext ctx, Throwable e) {
 		if(log.isTraceEnabled())
 			log.trace("delivering exception message to the client");
 
@@ -810,7 +814,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<HttpObject> {
 
 		// Convert file separators.
 		uri = uri.replace('/', File.separatorChar);
-		
+
 		//
 		// remove parameters from the URL
 		//
