@@ -25,9 +25,12 @@ import java.util.Locale;
  */
 public class ApplicationConfig extends Config {
 	private static final long serialVersionUID = -4106496145463699646L;
+	public static final String CLASSESDIR_KEY = "application.classes";
 	public static final String CONFIG_FILENAME = "application.properties";
+	public static final String CONFIG_DEV_FILENAME = "application-dev.properties";
 	public static final String CHARSET_KEY = "application.charset";
 	public static final String DOMAINS_KEY = "application.domains";
+	public static final String LIBDIR_KEY = "application.lib";
 	public static final String LOCALE_KEY = "application.locale";
 	public static final String SESSION_EXPIRE_KEY = "application.session.expire";
 	public static final String SESSION_FACTORY_KEY = "application.session.factory";

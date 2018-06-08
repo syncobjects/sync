@@ -17,6 +17,7 @@ package io.syncframework.core;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,9 +36,7 @@ import io.syncframework.util.FileUtils;
 import io.syncframework.util.StringUtils;
 
 /**
- * 
  * @author dfroz
- *
  */
 public class Application {
 	private static final Logger log = LoggerFactory.getLogger(Application.class);
@@ -83,29 +82,54 @@ public class Application {
 	}
 	
 	private void initConfig() throws Exception {
-		File file = new File(base, ApplicationConfig.CONFIG_FILENAME);
-		if(!file.exists()) {
-			throw new RuntimeException("failed to locate application configuration file: "+file.getAbsolutePath());
+		// Check if CONFIG_DEV_FILENAME dev exists...
+		File configFile = new File(base, ApplicationConfig.CONFIG_DEV_FILENAME);
+		if(!configFile.exists()) {
+			// let's pick production application.properties file then...
+			configFile = new File(base, ApplicationConfig.CONFIG_FILENAME);
+			if(!configFile.exists()) {
+				throw new RuntimeException("failed to locate application configuration file: "+configFile.getAbsolutePath());
+			}
 		}
-		try {
-			config.load(new FileInputStream(file));
-		}
+		try { config.load(new FileInputStream(configFile)); }
 		catch(Exception e) {
-			throw new RuntimeException("failed to load application configuration file: "+file.getAbsolutePath(), e);
+			throw new RuntimeException("failed to load application configuration file: "+configFile.getAbsolutePath(), e);
 		}
 		
 		//
 		// set directories
 		//
 		config.setBaseDirectory(base);
-		File classesdir = new File(base, "classes");
+		
+		//
+		// set Classes Directory. Starting with release 0.3.0, can be configurable relatively to Basedir.
+		//
+		File classesdir = null;
+		String configClasses = config.getString(ApplicationConfig.CLASSESDIR_KEY);
+		if(configClasses != null) {
+			classesdir = Paths.get(base.getAbsolutePath(), configClasses).toFile();
+		}
+		else {
+			classesdir = new File(base, "classes");
+		}
 		if(!classesdir.exists())
 			classesdir.mkdirs();
 		config.setClassesDirectory(classesdir);
-		File libdir = new File(base, "lib");
+		
+		//
+		// Set Lib Directory. Starting with release 0.3.0, can be configurable relatively to Basedir.
+		File libdir = null;
+		String configLib = config.getString(ApplicationConfig.LIBDIR_KEY);
+		if(configLib != null) {
+			libdir = Paths.get(base.getAbsolutePath(), configLib).toFile();
+		}
+		else {
+			libdir = new File(base, "lib");
+		}
 		if(!libdir.exists())
 			libdir.mkdirs();
 		config.setLibDirectory(libdir);
+		
 		File privatedir = new File(base, "private");
 		if(!privatedir.exists())
 			privatedir.mkdirs();
@@ -157,6 +181,8 @@ public class Application {
 		
 		if(log.isTraceEnabled())
 			log.trace("{} responsible for domains: {}", this, domains);
+		
+		
 		
 		//
 		// locale configuration
