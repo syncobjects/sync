@@ -68,6 +68,21 @@ public class ApplicationClassLoader extends URLClassLoader  {
                 return parent.loadClass(name);
             }
         }
+        
+        public String toString() {
+        	StringBuilder sb = new StringBuilder();
+        	sb.append("child: [ ");
+        	int count = 0;
+        	for(URL url: super.getURLs()) {
+        		if(count != 0)
+        			sb.append(", ");
+        		sb.append(url);
+        		count++;
+        	}
+        	sb.append(" ]");
+        	sb.append("parent: [ ").append(parent).append(" ]");
+        	return sb.toString();
+        }
     }
 
     public ApplicationClassLoader(List<URL> classpath) {
@@ -102,5 +117,11 @@ public class ApplicationClassLoader extends URLClassLoader  {
             url = super.findResource(name);
         }
         return url;
+    }
+    
+    public String toString() {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append("ApplicationClassLoader[").append(childClassLoader).append("]");
+    	return sb.toString();
     }
 }

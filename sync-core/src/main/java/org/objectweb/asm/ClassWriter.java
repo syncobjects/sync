@@ -849,7 +849,10 @@ public class ClassWriter extends ClassVisitor {
    * @return the internal name of the common super class of the two given classes.
    */
   protected String getCommonSuperClass(final String type1, final String type2) {
-    ClassLoader classLoader = getClass().getClassLoader();
+	  // SYNCFRAMEWORK
+	  //ClassLoader classLoader = getClass().getClassLoader();
+	  // this is the customization to guarantee that it is considering the correct class loader
+	  ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
     Class<?> class1;
     try {
       class1 = Class.forName(type1.replace('/', '.'), false, classLoader);

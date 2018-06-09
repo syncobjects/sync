@@ -245,9 +245,14 @@ public class ClassReader {
    * @throws IOException if an exception occurs during reading.
    */
   public ClassReader(final String className) throws IOException {
+	  // SYNCFRAMEWORK customization...
+	  this(readStream(Thread.currentThread().getContextClassLoader().getResourceAsStream(className.replace('.', '/') + ".class"), true));
+	  /*
+	SYNC: commented out as needs to get the class loader from Thread.currentContext instead.
     this(
         readStream(
             ClassLoader.getSystemResourceAsStream(className.replace('.', '/') + ".class"), true));
+	   */
   }
 
   /**
