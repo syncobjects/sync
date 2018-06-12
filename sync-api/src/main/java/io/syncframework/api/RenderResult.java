@@ -47,12 +47,13 @@ public class RenderResult extends Result {
 		it = this.getHeaders().keySet().iterator();
 		while(it.hasNext()) {
 			String header = it.next();
-			sb.append(header).append(": ").append(this.getHeaders().get(header));
+			sb.append("\"").append(header).append("\": ");
+			sb.append("\"").append(this.getHeaders().get(header)).append("\"");
 			if(it.hasNext())
 				sb.append(", ");
 		}
-		sb.append("}");
-		sb.append("}");
+		sb.append(" }");
+		sb.append(" }");
 		return sb.toString();
 	}
 }

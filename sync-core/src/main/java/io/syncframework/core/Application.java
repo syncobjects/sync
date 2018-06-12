@@ -109,11 +109,11 @@ public class Application {
 		if(configClasses != null) {
 			classesdir = Paths.get(base.getAbsolutePath(), configClasses).toFile();
 		}
-		else {
+		if(classesdir == null) {
 			classesdir = new File(base, "classes");
 		}
 		if(!classesdir.exists())
-			classesdir.mkdirs();
+			throw new RuntimeException("@Application "+name+"; classes directory ("+classesdir.getAbsolutePath()+") not defined");
 		config.setClassesDirectory(classesdir);
 		
 		//
@@ -123,7 +123,7 @@ public class Application {
 		if(configLib != null) {
 			libdir = Paths.get(base.getAbsolutePath(), configLib).toFile();
 		}
-		else {
+		if(libdir == null) {
 			libdir = new File(base, "lib");
 		}
 		if(!libdir.exists())
