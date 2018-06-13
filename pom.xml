@@ -7,9 +7,33 @@
 	<groupId>io.syncframework</groupId>
 	<artifactId>sync</artifactId>
 	<version>0.3.0</version>
-	<name>SYNC Framework</name>
-	<url>https://syncframework.io</url>
 	<packaging>pom</packaging>
+	
+	<name>SYNC Framework</name>
+	<description>SYNC Framework project, bringing the fun for developing Java applications for Web</description>
+	<url>https://syncframework.io</url>
+	
+	<licenses>
+		<license>
+			<name>The Apache License, Version 2.0</name>
+    		<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+		</license>
+	</licenses>
+	
+	<developers>
+		<developer>
+			<name>Daniel Froz Costa</name>
+			<email>daniel.froz@baconize.io</email>
+			<organization>Baconize</organization>
+			<organizationUrl>http://www.baconize.io</organizationUrl>
+		</developer>
+	</developers>
+	
+	<scm>
+		<connection>scm:git:git://github.com/syncobjects/sync.git</connection>
+		<developerConnection>scm:git:ssh://github.com/syncobjects/sync.git</developerConnection>
+		<url>https://github.com/syncobjects/sync/tree/master</url>
+	</scm>
 
 	<modules>
 		<module>sync-api</module>
